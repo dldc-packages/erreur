@@ -1,0 +1,63 @@
+{
+  "name": "erreur",
+  "version": "0.0.0",
+  "description": "Type safe custom errors",
+  "keywords": [
+    "error",
+    "ts",
+    "typescript"
+  ],
+  "homepage": "https://github.com/etienne-dldc/erreur#readme",
+  "bugs": {
+    "url": "https://github.com/etienne-dldc/erreur/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/etienne-dldc/erreur.git"
+  },
+  "license": "MIT",
+  "author": "Etienne Dldc <e.deladonchamps@gmail.com>",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "import": "./dist/mod.mjs",
+      "require": "./dist/mod.js"
+    }
+  },
+  "main": "./dist/mod.js",
+  "module": "./dist/mod.mjs",
+  "types": "./dist/mod.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rimraf dist deno_dist && tsup --format cjs,esm src/mod.ts --dts src/mod.ts && denoify",
+    "lint": "prettier . --check && eslint . && tsc --noEmit",
+    "lint:fix": "prettier . --write . && eslint . --fix",
+    "release": "yarn build && np",
+    "test": "yarn lint && jest --coverage",
+    "test:run": "jest",
+    "test:watch": "jest --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/jest": "^27.5.0",
+    "@typescript-eslint/eslint-plugin": "^5.23.0",
+    "@typescript-eslint/parser": "^5.23.0",
+    "denoify": "^0.11.0",
+    "eslint": "^8.15.0",
+    "eslint-config-prettier": "^8.3.0",
+    "jest": "^28.1.0",
+    "np": "^7.6.1",
+    "prettier": "^2.6.2",
+    "rimraf": "^3.0.2",
+    "ts-jest": "^28.0.2",
+    "tslib": "^2.4.0",
+    "tsup": "^5.12.7",
+    "typescript": "^4.6.4"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  }
+}
