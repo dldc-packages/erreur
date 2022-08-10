@@ -44,6 +44,12 @@ export class ErreursMap<Errors extends ErreursMapErrors> {
     { [K in keyof Errors]: { kind: K } & ReturnType<Errors[K]> }[keyof Errors]
   > = null as any;
 
+  /**
+   * Create an instance of Erreur with the given kind.
+   * `UserErreurs.create.[ErrorKind](...args)`
+   */
+  public readonly create: ErreursMapCreate<Errors>;
+
   constructor(errors: Errors) {
     this.errors = errors;
     this.create = Object.fromEntries(
@@ -60,8 +66,6 @@ export class ErreursMap<Errors extends ErreursMapErrors> {
     }
     return false;
   }
-
-  public readonly create: ErreursMapCreate<Errors>;
 
   public wrap<T>(fn: () => T, mapOtherErr: (err: unknown) => this['infered']): T | this['infered'] {
     try {

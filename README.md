@@ -9,7 +9,7 @@ This library allows you to create custom errors with type safety. It's composed 
 - `Erreur`: The custom error class.
 - `ErreursMap`: A class to help you create a set of custom errors.
 
-### `Erreur`
+## `Erreur`
 
 The `Erreur` class extends the base `Error` class and adds the following properties:
 
@@ -37,7 +37,7 @@ expect(err.infos).toEqual({
 });
 ```
 
-### `ErreursMap`
+## `ErreursMap`
 
 The `ErreursMap` class allow you to define and manipulate a set of `Erreur`s.
 
@@ -51,6 +51,8 @@ const UserErreurs = new ErreursMap({
 });
 ```
 
+### `.create`
+
 Once the `ErreursMap` created you can use it to create `Erreur` instances with `UserErreurs.create.[ErrorKind](...args)`:
 
 ```typescript
@@ -59,4 +61,37 @@ const err = UserErreurs.create.UserAlreadyExists('paul-bocuse');
 // err is an instance of Erreur
 ```
 
-<!-- TODO: UserErreurs.is, UserErreurs.wrap, UserErreurs.wrapAsync -->
+### `.is`
+
+You can check wether an error is one of the errors defined in the `ErreursMap` with `UserErreurs.is(err)`:
+
+```typescript
+UserErreurs.is(err); // true
+```
+
+**Note**: The `.is` check if the value is an instance of `Erreur` and if the `kind` is one of the errors defined in the `ErreursMap`.
+
+### `.wrap`
+
+The `.wrap` method allow you to run code and return either teh result or one of the `Erreur` specified in the `ErreursMap`.
+
+The `.wrap` method takes two parameters:
+
+- `fn`: The function to run.
+- `mapOtherErr`: A function that will be used to transform any error that is not one of the `ErreursMap` errors into a valid one.
+
+```typescript
+const result = UserErreurs.wrap(
+  () => {
+    // this could throw
+    createNewUser();
+  },
+  (err) => UserErreurs.create.UnknownError(err)
+);
+
+// result is either an Erreur or the result of the function
+```
+
+### `.wrapAsync`
+
+The `.wrapAsync` method is similar to `.wrap` but it takes an async function instead of a regular function and returns a Promise.
