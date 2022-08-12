@@ -17,10 +17,7 @@ export class Erreur<T extends ErreurInfos> extends Error {
   }
 }
 
-export type ErreursMapErrors = Record<
-  string,
-  (...args: any[]) => { message: string; details?: any }
->;
+export type ErreursMapErrors = Record<string, (...args: any[]) => { message: string }>;
 
 export type ErreursMapCreate<Errors extends ErreursMapErrors> = {
   [K in keyof Errors]: (
@@ -30,11 +27,21 @@ export type ErreursMapCreate<Errors extends ErreursMapErrors> = {
 
 export type Expand<T> = T extends unknown ? { [K in keyof T]: T[K] } : never;
 
+export type FromTypes<Errors extends { kind: string; message: string }> = {
+  [K in Errors['kind']]: (...args: any[]) => Omit<Extract<Errors, { kind: K }>, 'kind'>;
+};
+
 export class ErreursMap<Errors extends ErreursMapErrors> {
   public static readonly Base = new ErreursMap({
     UnknownError: (error: Error) => ({ message: error.message, error }),
     Unknown: (error: unknown) => ({ message: String(error), error }),
   });
+
+  public static fromType<Errors extends { kind: string; message: string }>(
+    errors: FromTypes<Errors>
+  ): ErreursMap<FromTypes<Errors>> {
+    return new ErreursMap(errors);
+  }
 
   public readonly errors: Errors;
 

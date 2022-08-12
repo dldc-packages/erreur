@@ -22,10 +22,16 @@ test('Create Erreur', () => {
 });
 
 test('Basic usage', () => {
-  const SomeErreur = new ErreursMap({
-    ...ErreursMap.Base.errors,
+  type ISomeErreur =
+    | { kind: 'Unknown'; message: string; error: unknown }
+    | { kind: 'StuffGoneWrong'; message: string; count: number };
+
+  const SomeErreur = ErreursMap.fromType<ISomeErreur>({
+    Unknown: (error: unknown) => ({ message: `Unknow error`, error }),
     StuffGoneWrong: (count: number) => ({ message: `Stuff went wrong ${count} times`, count }),
   });
+
+  SomeErreur.infered;
 
   expect(Object.keys(SomeErreur.create)).toEqual(['UnknownError', 'Unknown', 'StuffGoneWrong']);
 
