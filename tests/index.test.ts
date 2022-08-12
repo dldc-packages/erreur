@@ -33,7 +33,7 @@ test('Basic usage', () => {
 
   SomeErreur.infered;
 
-  expect(Object.keys(SomeErreur.create)).toEqual(['UnknownError', 'Unknown', 'StuffGoneWrong']);
+  expect(Object.keys(SomeErreur.create)).toEqual(['Unknown', 'StuffGoneWrong']);
 
   const err = SomeErreur.create.StuffGoneWrong(3);
 
@@ -56,39 +56,48 @@ test('Basic usage', () => {
 
 describe('Wrap', () => {
   const MyError = new ErreursMap({
-    ...ErreursMap.Base.errors,
+    Unknown: (error: unknown) => ({ message: `Unknow error`, error }),
     InvalidNumber: (number: number) => ({ message: `Invalid number`, number }),
   });
 
-  const mapOtherError = (err: unknown) =>
-    err instanceof Error ? MyError.create.UnknownError(err) : MyError.create.Unknown(err);
-
   test('Return result when no error', () => {
-    const result = MyError.wrap(() => 42, mapOtherError);
+    const result = MyError.wrap(
+      () => 42,
+      (err) => MyError.create.Unknown(err)
+    );
 
     expect(result).toBe(42);
   });
 
   test('Return error when error is MyError', () => {
-    const result = MyError.wrap(() => {
-      throw MyError.create.InvalidNumber(-4);
-    }, mapOtherError);
+    const result = MyError.wrap(
+      () => {
+        throw MyError.create.InvalidNumber(-4);
+      },
+      (err) => MyError.create.Unknown(err)
+    );
 
     expect(result).toBeInstanceOf(Erreur);
     expect(result.kind).toBe('InvalidNumber');
   });
 
   test('Return mapOtherErr result when error is not MyError', () => {
-    const result = MyError.wrap(() => {
-      throw new Error('oops');
-    }, mapOtherError);
+    const result = MyError.wrap(
+      () => {
+        throw new Error('oops');
+      },
+      (err) => MyError.create.Unknown(err)
+    );
 
     expect(result).toBeInstanceOf(Erreur);
-    expect(result.kind).toBe('UnknownError');
+    expect(result.kind).toBe('Unknown');
 
-    const result2 = MyError.wrap(() => {
-      throw 'Yolo';
-    }, mapOtherError);
+    const result2 = MyError.wrap(
+      () => {
+        throw 'Yolo';
+      },
+      (err) => MyError.create.Unknown(err)
+    );
 
     expect(result2).toBeInstanceOf(Erreur);
     expect(result2.kind).toBe('Unknown');
@@ -97,39 +106,48 @@ describe('Wrap', () => {
 
 describe('WrapAsync', () => {
   const MyError = new ErreursMap({
-    ...ErreursMap.Base.errors,
+    Unknown: (error: unknown) => ({ message: `Unknow error`, error }),
     InvalidNumber: (number: number) => ({ message: `Invalid number`, number }),
   });
 
-  const mapOtherError = (err: unknown) =>
-    err instanceof Error ? MyError.create.UnknownError(err) : MyError.create.Unknown(err);
-
   test('Return result when no error', async () => {
-    const result = await MyError.wrapAsync(() => Promise.resolve(42), mapOtherError);
+    const result = await MyError.wrapAsync(
+      () => Promise.resolve(42),
+      (err) => MyError.create.Unknown(err)
+    );
 
     expect(result).toBe(42);
   });
 
   test('Return error when error is MyError', async () => {
-    const result = await MyError.wrapAsync(async () => {
-      throw MyError.create.InvalidNumber(-4);
-    }, mapOtherError);
+    const result = await MyError.wrapAsync(
+      async () => {
+        throw MyError.create.InvalidNumber(-4);
+      },
+      (err) => MyError.create.Unknown(err)
+    );
 
     expect(result).toBeInstanceOf(Erreur);
     expect(result.kind).toBe('InvalidNumber');
   });
 
   test('Return mapOtherErr result when error is not MyError', async () => {
-    const result = await MyError.wrapAsync(async () => {
-      throw new Error('oops');
-    }, mapOtherError);
+    const result = await MyError.wrapAsync(
+      async () => {
+        throw new Error('oops');
+      },
+      (err) => MyError.create.Unknown(err)
+    );
 
     expect(result).toBeInstanceOf(Erreur);
-    expect(result.kind).toBe('UnknownError');
+    expect(result.kind).toBe('Unknown');
 
-    const result2 = await MyError.wrapAsync(async () => {
-      throw 'Yolo';
-    }, mapOtherError);
+    const result2 = await MyError.wrapAsync(
+      async () => {
+        throw 'Yolo';
+      },
+      (err) => MyError.create.Unknown(err)
+    );
 
     expect(result2).toBeInstanceOf(Erreur);
     expect(result2.kind).toBe('Unknown');

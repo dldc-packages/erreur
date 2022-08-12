@@ -32,11 +32,6 @@ export type FromTypes<Errors extends { kind: string; message: string }> = {
 };
 
 export class ErreursMap<Errors extends ErreursMapErrors> {
-  public static readonly Base = new ErreursMap({
-    UnknownError: (error: Error) => ({ message: error.message, error }),
-    Unknown: (error: unknown) => ({ message: String(error), error }),
-  });
-
   public static fromType<Errors extends { kind: string; message: string }>(
     errors: FromTypes<Errors>
   ): ErreursMap<FromTypes<Errors>> {
