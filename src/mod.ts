@@ -28,6 +28,8 @@ export type ErreursMapCreate<Errors extends ErreursMapErrors> = {
   ) => Erreur<{ kind: K } & ReturnType<Errors[K]>>;
 };
 
+export type Expand<T> = T extends unknown ? { [K in keyof T]: T[K] } : never;
+
 export class ErreursMap<Errors extends ErreursMapErrors> {
   public static readonly Base = new ErreursMap({
     UnknownError: (error: Error) => ({ message: error.message, error }),
@@ -41,7 +43,7 @@ export class ErreursMap<Errors extends ErreursMapErrors> {
    * type MyError = typeof MyError.infered
    */
   public readonly infered: Erreur<
-    { [K in keyof Errors]: { kind: K } & ReturnType<Errors[K]> }[keyof Errors]
+    { [K in keyof Errors]: Expand<{ kind: K } & ReturnType<Errors[K]>> }[keyof Errors]
   > = null as any;
 
   /**
