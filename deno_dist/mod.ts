@@ -31,11 +31,17 @@ export type FromTypes<Errors extends { kind: string; message: string }> = {
   [K in Errors['kind']]: (...args: any[]) => Omit<Extract<Errors, { kind: K }>, 'kind'>;
 };
 
+export type FromTypesFactory<ErrorsInfos extends { kind: string; message: string }> = <
+  Errors extends FromTypes<ErrorsInfos>
+>(
+  errors: Errors
+) => ErreursMap<Errors>;
+
 export class ErreursMap<Errors extends ErreursMapErrors> {
-  public static fromType<Errors extends { kind: string; message: string }>(
-    errors: FromTypes<Errors>
-  ): ErreursMap<FromTypes<Errors>> {
-    return new ErreursMap(errors);
+  public static fromTypes<
+    ErrorsInfos extends { kind: string; message: string }
+  >(): FromTypesFactory<ErrorsInfos> {
+    return (errors) => new ErreursMap(errors) as any;
   }
 
   public readonly errors: Errors;
