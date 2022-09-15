@@ -26,7 +26,7 @@ test('Basic usage', () => {
     | { kind: 'Unknown'; message: string; error: unknown }
     | { kind: 'StuffGoneWrong'; message: string; count: number };
 
-  const SomeErreur = ErreursMap.fromType<ISomeErreur>({
+  const SomeErreur = ErreursMap.fromTypes<ISomeErreur>()({
     Unknown: (error: unknown) => ({ message: `Unknow error`, error }),
     StuffGoneWrong: (count: number) => ({ message: `Stuff went wrong ${count} times`, count }),
   });
