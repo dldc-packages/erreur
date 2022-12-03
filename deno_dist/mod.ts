@@ -27,6 +27,7 @@ export class Erreur extends Error {
   static readonly match = match;
   static readonly matchObj = matchObj;
   static readonly matchObjOrThrow = matchObjOrThrow;
+  static readonly createFromTypes = createFromTypes;
 
   static create<Data>(name: string): ErreurType<Data> {
     const type: ErreurType<Data> = {
@@ -160,4 +161,14 @@ function matchObjOrThrow<Types extends TypesBase>(
     return res;
   }
   throw error;
+}
+
+export type ErreursFromTypes<Errors extends Record<string, any>> = {
+  [K in keyof Errors]: ErreurType<Errors[K]>;
+};
+
+function createFromTypes<Errors extends Record<string, any>>(
+  obj: ErreursFromTypes<Errors>
+): ErreursFromTypes<Errors> {
+  return obj;
 }
