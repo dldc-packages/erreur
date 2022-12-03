@@ -1,8 +1,18 @@
 const INTERNAL = Symbol('INTERNAL');
+const DATA = Symbol('DATA');
 
 export type OnError = (error: unknown) => Erreur;
 
+export type ErreurMap = Record<string, ErreurTypeAny>;
+
+export type ErreurTypeAny = ErreurType<any, any>;
+
+export type ErreurWithKind<Erreurs extends ErreurMap> = {
+  [K in keyof Erreurs]: { kind: K; data: Erreurs[K] };
+}[keyof Erreurs];
+
 export interface ErreurType<Data, Params extends readonly any[] = [Data]> {
+  readonly [DATA]: Data;
   readonly [INTERNAL]: symbol;
   readonly name: string;
 
@@ -25,14 +35,19 @@ export class Erreur extends Error {
 
   static readonly wrap = wrap;
   static readonly wrapAsync = wrapAsync;
+
   static readonly resolve = resolve;
   static readonly resolveAsync = resolveAsync;
+
   static readonly is = is;
   static readonly isOneOf = isOneOf;
   static readonly match = match;
   static readonly matchObj = matchObj;
   static readonly matchObjOrThrow = matchObjOrThrow;
+
   static readonly createFromTypes = createFromTypes;
+  static readonly createWithTransform = createWithTransform;
+  static readonly createFromCreators = createFromCreators;
 
   static create<Data>(name: string): ErreurType<Data> {
     const symbol = Symbol(`[Erreur]: ${name}`);
@@ -42,6 +57,7 @@ export class Erreur extends Error {
     function createWithTransform(transform: (...params: any[]) => Data) {
       const type: ErreurType<Data> = {
         [INTERNAL]: symbol,
+        [DATA]: null as any,
         name,
         create: (...params: any[]) => new Erreur({ type, data: transform(...params) }),
         is: (error: unknown): error is Erreur => is(error, type),
@@ -52,13 +68,6 @@ export class Erreur extends Error {
     }
   }
 
-  static createWithTransform<Data, Params extends readonly any[]>(
-    name: string,
-    transform: (...params: Params) => Data
-  ): ErreurType<Data, Params> {
-    return Erreur.create<Data>(name).withTransform(transform);
-  }
-
   private constructor(internal: ErreurInternal<any>) {
     super(`[Erreur]: ${internal.type.name} ${JSON.stringify(internal.data)}`);
     this[INTERNAL] = internal;
@@ -66,11 +75,11 @@ export class Erreur extends Error {
     Object.setPrototypeOf(this, new.target.prototype);
   }
 
-  is(type: ErreurType<any>): boolean {
+  is(type: ErreurTypeAny): boolean {
     return is(this, type);
   }
 
-  isOneOf(types: ErreurType<any>[]): boolean {
+  isOneOf(types: ErreurTypeAny[]): boolean {
     return isOneOf(this, types);
   }
 }
@@ -82,7 +91,7 @@ export function wrap<Res>(fn: () => Res, onError: OnError): Res {
   try {
     return fn();
   } catch (e) {
-    if (Erreur.is(e)) {
+    if (is(e)) {
       throw e;
     }
     throw onError(e);
@@ -93,7 +102,7 @@ export async function wrapAsync<Res>(fn: () => Promise<Res>, onError: OnError): 
   try {
     return await fn();
   } catch (error) {
-    if (Erreur.is(error)) {
+    if (is(error)) {
       throw error;
     }
     throw onError(error);
@@ -122,33 +131,33 @@ export async function resolveAsync<Res>(
   }
 }
 
-function is(error: unknown, type?: ErreurType<any>): error is Error {
+function is(error: unknown, type?: ErreurTypeAny): error is Error {
   if (error instanceof Erreur) {
     if (type) {
-      return error[INTERNAL].type === type;
+      return error[INTERNAL].type[INTERNAL] === type[INTERNAL];
     }
     return true;
   }
   return false;
 }
 
-function isOneOf(error: unknown, types: ErreurType<any>[]): error is Erreur {
+function isOneOf(error: unknown, types: ErreurTypeAny[]): error is Erreur {
   if (error instanceof Erreur) {
-    return types.some((type) => error[INTERNAL].type === type);
+    return types.some((type) => error[INTERNAL].type[INTERNAL] === type[INTERNAL]);
   }
   return false;
 }
 
 function match<Data>(error: unknown, type: ErreurType<Data>): Data | null {
   if (error instanceof Erreur) {
-    if (error[INTERNAL].type === type) {
+    if (error[INTERNAL].type[INTERNAL] === type[INTERNAL]) {
       return error[INTERNAL].data;
     }
   }
   return null;
 }
 
-export type TypesBase = Record<string, ErreurType<any>>;
+export type TypesBase = Record<string, ErreurTypeAny>;
 
 export type DataFromTypes<Types extends TypesBase> = {
   [K in keyof Types]: { kind: K; data: Types[K][typeof INTERNAL] };
@@ -164,7 +173,7 @@ function matchObj<Types extends TypesBase>(
   const keys = Object.keys(types);
   for (const key of keys) {
     const type = types[key];
-    if (error[INTERNAL].type === type) {
+    if (error[INTERNAL].type[INTERNAL] === type[INTERNAL]) {
       return { kind: key, data: error[INTERNAL].data };
     }
   }
@@ -182,12 +191,33 @@ function matchObjOrThrow<Types extends TypesBase>(
   throw error;
 }
 
-export type ErreursFromTypes<Errors extends Record<string, any>> = {
-  [K in keyof Errors]: ErreurType<Errors[K]>;
+function createWithTransform<Data, Params extends readonly any[]>(
+  name: string,
+  transform: (...params: Params) => Data
+): ErreurType<Data, Params> {
+  return Erreur.create<Data>(name).withTransform(transform);
+}
+
+export type CreatorsBase = Record<string, (...args: any[]) => any>;
+
+export type ErreursFromCreators<Creators extends CreatorsBase> = {
+  [K in keyof Creators]: ErreurType<ReturnType<Creators[K]>, Parameters<Creators[K]>>;
 };
 
-function createFromTypes<Errors extends Record<string, any>>(
-  obj: ErreursFromTypes<Errors>
-): ErreursFromTypes<Errors> {
-  return obj;
+function createFromCreators<Creators extends CreatorsBase>(
+  creators: Creators
+): ErreursFromCreators<Creators> {
+  const res: any = {};
+  for (const key of Object.keys(creators)) {
+    res[key] = Erreur.createWithTransform(key, creators[key]);
+  }
+  return res;
+}
+
+function createFromTypes<Errors extends Record<string, any>>() {
+  return <Creators extends { [K in keyof Errors]: (...args: any[]) => Errors[K] }>(
+    creators: Creators
+  ): ErreursFromCreators<Creators> => {
+    return createFromCreators(creators);
+  };
 }

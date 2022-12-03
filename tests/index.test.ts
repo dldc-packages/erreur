@@ -18,6 +18,24 @@ test('Create Erreur.withTransform', () => {
   expect(err.message).toBe('[Erreur]: MyErreur {"num":42}');
 });
 
+test('Erreur.createFromTypes', () => {
+  interface IErreurs {
+    MyErreur: { num: number };
+    MyOtherErreur: { str: string };
+  }
+
+  const Erreurs = Erreur.createFromTypes<IErreurs>()({
+    MyErreur: (num: number) => ({ num }),
+    MyOtherErreur: (str: string) => ({ str }),
+  });
+
+  const err1 = Erreurs.MyErreur.create(42);
+  const err2 = Erreurs.MyOtherErreur.create('hello');
+
+  expect(err1).toBeInstanceOf(Erreur);
+  expect(err2).toBeInstanceOf(Erreur);
+});
+
 test('Create Erreur.createWithTransform', () => {
   const MyErreur = Erreur.createWithTransform('MyErreur', (num: number) => ({
     num,
