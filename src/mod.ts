@@ -1,112 +1,127 @@
-export type ErreurInfos = { kind: string | number | symbol; message: string };
+const INTERNAL = Symbol('INTERNAL');
 
-export class Erreur<T extends ErreurInfos> extends Error {
-  public static is(val: unknown): val is Erreur<ErreurInfos> {
-    return val instanceof Erreur;
-  }
+export type OnError = (error: unknown) => Erreur;
 
-  public readonly infos: T;
-  public readonly kind: T['kind'];
-
-  constructor(infos: T) {
-    super('[Erreur] ' + infos.message);
-    this.infos = infos;
-    this.kind = infos.kind;
-    // restore prototype chain
-    Object.setPrototypeOf(this, Erreur.prototype);
+/**
+ * Make sure the function either returns a value or throws an Erreur
+ */
+export function wrap<Res>(fn: () => Res, onError: OnError): Res {
+  try {
+    return fn();
+  } catch (e) {
+    if (Erreur.is(e)) {
+      throw e;
+    }
+    throw onError(e);
   }
 }
 
-export type ErreursMapErrors = Record<string, (...args: any[]) => { message: string }>;
+export async function wrapAsync<Res>(fn: () => Promise<Res>, onError: OnError): Promise<Res> {
+  try {
+    return await fn();
+  } catch (error) {
+    if (Erreur.is(error)) {
+      throw error;
+    }
+    throw onError(error);
+  }
+}
 
-export type ErreursMapCreate<Errors extends ErreursMapErrors> = {
-  [K in keyof Errors]: (
-    ...params: Parameters<Errors[K]>
-  ) => Erreur<{ kind: K } & ReturnType<Errors[K]>>;
-};
+/**
+ * Same as wrap but returns the error instead of throwing it
+ */
+export function resolve<Res>(fn: () => Res, onError: OnError): Res | Erreur {
+  try {
+    return wrap(fn, onError);
+  } catch (error) {
+    return error as any;
+  }
+}
 
-export type Expand<T> = T extends unknown ? { [K in keyof T]: T[K] } : never;
+export async function resolveAsync<Res>(
+  fn: () => Promise<Res>,
+  onError: OnError
+): Promise<Res | Erreur> {
+  try {
+    return await wrapAsync(fn, onError);
+  } catch (error) {
+    return error as any;
+  }
+}
 
-export type FromTypes<Errors extends { kind: string; message: string }> = {
-  [K in Errors['kind']]: (...args: any[]) => Omit<Extract<Errors, { kind: K }>, 'kind'>;
-};
+export interface ErreurType<Data> {
+  readonly [INTERNAL]: Data;
+  readonly name: string;
+  readonly create: (data: Data) => Erreur;
+  readonly is: (error: unknown) => error is Erreur;
+  readonly match: (error: unknown) => Data | null;
+}
 
-export type FromTypesFactory<ErrorsInfos extends { kind: string; message: string }> = <
-  Errors extends FromTypes<ErrorsInfos>
->(
-  errors: Errors
-) => ErreursMap<Errors>;
+interface ErreurInternal<Data> {
+  readonly type: ErreurType<Data>;
+  readonly data: Data;
+}
 
-export class ErreursMap<Errors extends ErreursMapErrors> {
-  public static fromTypes<
-    ErrorsInfos extends { kind: string; message: string }
-  >(): FromTypesFactory<ErrorsInfos> {
-    return (errors) => new ErreursMap(errors) as any;
+export class Erreur extends Error {
+  private [INTERNAL]: ErreurInternal<any>;
+
+  static readonly wrap = wrap;
+  static readonly wrapAsync = wrapAsync;
+  static readonly resolve = resolve;
+  static readonly resolveAsync = resolveAsync;
+
+  static create<Data>(name: string): ErreurType<Data> {
+    const type: ErreurType<Data> = {
+      [INTERNAL]: {} as any,
+      name,
+      create: (data: Data) => new Erreur({ type, data }),
+      is: (error: unknown): error is Erreur => {
+        if (error instanceof Erreur) {
+          return error[INTERNAL].type === type;
+        }
+        return false;
+      },
+      match: (error: unknown): Data | null => {
+        if (error instanceof Erreur) {
+          if (error[INTERNAL].type === type) {
+            return error[INTERNAL].data;
+          }
+        }
+        return null;
+      },
+    };
+    return type;
   }
 
-  public readonly errors: Errors;
-
-  /**
-   * This property expose the type of the error.
-   * type MyError = typeof MyError.infered
-   */
-  public readonly infered: Erreur<
-    { [K in keyof Errors]: Expand<{ kind: K } & ReturnType<Errors[K]>> }[keyof Errors]
-  > = null as any;
-
-  /**
-   * Create an instance of Erreur with the given kind.
-   * `UserErreurs.create.[ErrorKind](...args)`
-   */
-  public readonly create: ErreursMapCreate<Errors>;
-
-  constructor(errors: Errors) {
-    this.errors = errors;
-    this.create = Object.fromEntries(
-      Object.entries(errors).map(([key, fn]) => [
-        key,
-        (...args: any[]) => new Erreur({ kind: key, ...fn(...args) }),
-      ])
-    ) as any;
-  }
-
-  public is(val: unknown): val is this['infered'] {
-    if (val instanceof Erreur && val.kind in this.errors) {
+  static is(error: unknown, type?: ErreurType<any>): error is Error {
+    if (error instanceof Erreur) {
+      if (type) {
+        return error[INTERNAL].type === type;
+      }
       return true;
     }
     return false;
   }
 
-  public wrap<T>(fn: () => T, mapOtherErr: (err: unknown) => this['infered']): T | this['infered'] {
-    try {
-      const result = fn();
-      if (isPromise(result)) {
-        console.warn('[Erreur.wrap]: Wrap received a promise, did you mean to use wrapAsync ?');
-      }
-      return result;
-    } catch (error) {
-      if (this.is(error)) {
-        return error;
-      }
-      return mapOtherErr(error);
+  static isOneOf(error: unknown, types: ErreurType<any>[]): error is Erreur {
+    if (error instanceof Erreur) {
+      return types.some((type) => error[INTERNAL].type === type);
     }
+    return false;
   }
 
-  public async wrapAsync<T>(
-    fn: () => Promise<T> | T,
-    mapOtherErr: (err: unknown) => this['infered']
-  ): Promise<T | this['infered']> {
-    try {
-      return await fn();
-    } catch (error) {
-      if (this.is(error)) {
-        return error;
-      }
-      return mapOtherErr(error);
-    }
+  private constructor(internal: ErreurInternal<any>) {
+    super(`[Erreur]: ${internal.type.name} ${JSON.stringify(internal.data)}`);
+    this[INTERNAL] = internal;
+    // restore prototype chain
+    Object.setPrototypeOf(this, new.target.prototype);
   }
-}
 
-function isPromise(val: unknown): val is Promise<any> {
-  return Promise.resolve(val) === val;
+  is(type: ErreurType<any>): boolean {
+    return this[INTERNAL].type === type;
+  }
+
+  isOneOf(types: ErreurType<any>[]): boolean {
+    return types.some((type) => this[INTERNAL].type === type);
+  }
 }
