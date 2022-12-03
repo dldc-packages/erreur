@@ -8,6 +8,26 @@ test('Create Erreur', () => {
   expect(err.message).toBe('[Erreur]: MyErreur {"num":42}');
 });
 
+test('Create Erreur.withTransform', () => {
+  const MyErreur = Erreur.create<{ num: number }>('MyErreur').withTransform((num: number) => ({
+    num,
+  }));
+
+  const err = MyErreur.create(42);
+
+  expect(err.message).toBe('[Erreur]: MyErreur {"num":42}');
+});
+
+test('Create Erreur.createWithTransform', () => {
+  const MyErreur = Erreur.createWithTransform('MyErreur', (num: number) => ({
+    num,
+  }));
+
+  const err = MyErreur.create(42);
+
+  expect(err.message).toBe('[Erreur]: MyErreur {"num":42}');
+});
+
 test('Basic usage', () => {
   const StuffGoneWrongErreur = Erreur.create<{ count: number }>('StuffGoneWrong');
 

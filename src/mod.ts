@@ -2,10 +2,15 @@ const INTERNAL = Symbol('INTERNAL');
 
 export type OnError = (error: unknown) => Erreur;
 
-export interface ErreurType<Data> {
-  readonly [INTERNAL]: Data;
+export interface ErreurType<Data, Params extends readonly any[] = [Data]> {
+  readonly [INTERNAL]: symbol;
   readonly name: string;
-  readonly create: (data: Data) => Erreur;
+
+  readonly withTransform: <Params extends readonly any[]>(
+    transform: (...params: Params) => Data
+  ) => ErreurType<Data, Params>;
+
+  readonly create: (...params: Params) => Erreur;
   readonly is: (error: unknown) => error is Erreur;
   readonly match: (error: unknown) => Data | null;
 }
@@ -30,14 +35,28 @@ export class Erreur extends Error {
   static readonly createFromTypes = createFromTypes;
 
   static create<Data>(name: string): ErreurType<Data> {
-    const type: ErreurType<Data> = {
-      [INTERNAL]: {} as any,
-      name,
-      create: (data: Data) => new Erreur({ type, data }),
-      is: (error: unknown): error is Erreur => is(error, type),
-      match: (error: unknown) => match(error, type),
-    };
-    return type;
+    const symbol = Symbol(`[Erreur]: ${name}`);
+
+    return createWithTransform((data: Data) => data);
+
+    function createWithTransform(transform: (...params: any[]) => Data) {
+      const type: ErreurType<Data> = {
+        [INTERNAL]: symbol,
+        name,
+        create: (...params: any[]) => new Erreur({ type, data: transform(...params) }),
+        is: (error: unknown): error is Erreur => is(error, type),
+        match: (error: unknown) => match(error, type),
+        withTransform: (subTransform) => createWithTransform(subTransform as any) as any,
+      };
+      return type;
+    }
+  }
+
+  static createWithTransform<Data, Params extends readonly any[]>(
+    name: string,
+    transform: (...params: Params) => Data
+  ): ErreurType<Data, Params> {
+    return Erreur.create<Data>(name).withTransform(transform);
   }
 
   private constructor(internal: ErreurInternal<any>) {
