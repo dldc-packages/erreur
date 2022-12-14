@@ -41,6 +41,7 @@ export class Erreur extends Error {
 
   static readonly is = is;
   static readonly isOneOf = isOneOf;
+  static readonly isOneOfObj = isOneOfObj;
   static readonly match = match;
   static readonly matchObj = matchObj;
   static readonly matchObjOrThrow = matchObjOrThrow;
@@ -144,6 +145,13 @@ function is(error: unknown, type?: ErreurTypeAny): error is Error {
 function isOneOf(error: unknown, types: ErreurTypeAny[]): error is Erreur {
   if (error instanceof Erreur) {
     return types.some((type) => error[INTERNAL].type[INTERNAL] === type[INTERNAL]);
+  }
+  return false;
+}
+
+function isOneOfObj(error: unknown, types: TypesBase): error is Erreur {
+  if (error instanceof Erreur) {
+    return Object.values(types).some((type) => error[INTERNAL].type[INTERNAL] === type[INTERNAL]);
   }
   return false;
 }
