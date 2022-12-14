@@ -1,15 +1,15 @@
 import { Erreur } from '../src/mod';
 
-test('Create Erreur', () => {
-  const MyErreur = Erreur.create<{ num: number }>('MyErreur');
+test('Declare Erreur', () => {
+  const MyErreur = Erreur.declare<{ num: number }>('MyErreur');
 
   const err = MyErreur.create({ num: 42 });
 
   expect(err.message).toBe('[Erreur]: MyErreur {"num":42}');
 });
 
-test('Create Erreur.withTransform', () => {
-  const MyErreur = Erreur.create<{ num: number }>('MyErreur').withTransform((num: number) => ({
+test('Declare Erreur.withTransform', () => {
+  const MyErreur = Erreur.declare<{ num: number }>('MyErreur').withTransform((num: number) => ({
     num,
   }));
 
@@ -18,13 +18,13 @@ test('Create Erreur.withTransform', () => {
   expect(err.message).toBe('[Erreur]: MyErreur {"num":42}');
 });
 
-test('Erreur.createFromTypes', () => {
+test('Erreur.declareFromTypes', () => {
   interface IErreurs {
     MyErreur: { num: number };
     MyOtherErreur: { str: string };
   }
 
-  const Erreurs = Erreur.createFromTypes<IErreurs>()({
+  const Erreurs = Erreur.declareManyFromTypes<IErreurs>()({
     MyErreur: (num: number) => ({ num }),
     MyOtherErreur: (str: string) => ({ str }),
   });
@@ -36,8 +36,17 @@ test('Erreur.createFromTypes', () => {
   expect(err2).toBeInstanceOf(Erreur);
 });
 
-test('Create Erreur.createWithTransform', () => {
-  const MyErreur = Erreur.createWithTransform('MyErreur', (num: number) => ({
+test('Erreur.declareMany', () => {
+  const Erreurs = Erreur.declareMany({
+    MyErreur: (num: number) => ({ num }),
+    MyOtherErreur: (str: string) => ({ str }),
+  });
+
+  Erreurs.MyErreur.create(42);
+});
+
+test('Create Erreur.declareWithTransform', () => {
+  const MyErreur = Erreur.declareWithTransform('MyErreur', (num: number) => ({
     num,
   }));
 
@@ -47,7 +56,7 @@ test('Create Erreur.createWithTransform', () => {
 });
 
 test('Basic usage', () => {
-  const StuffGoneWrongErreur = Erreur.create<{ count: number }>('StuffGoneWrong');
+  const StuffGoneWrongErreur = Erreur.declare<{ count: number }>('StuffGoneWrong');
 
   const err = StuffGoneWrongErreur.create({ count: 42 });
 
@@ -56,8 +65,8 @@ test('Basic usage', () => {
 });
 
 describe('Wrap', () => {
-  const InvalidNumberErreur = Erreur.create<{ num: number }>('InvalidNumber');
-  const Unknown = Erreur.create<{ error: unknown }>('Unknown');
+  const InvalidNumberErreur = Erreur.declare<{ num: number }>('InvalidNumber');
+  const Unknown = Erreur.declare<{ error: unknown }>('Unknown');
 
   test('Return result when no error', () => {
     const result = Erreur.wrap(
@@ -79,76 +88,20 @@ describe('Wrap', () => {
 
     expect(run).toThrowError();
   });
-
-  // test('Return mapOtherErr result when error is not MyError', () => {
-  //   const result = MyError.wrap(
-  //     () => {
-  //       throw new Error('oops');
-  //     },
-  //     (err) => MyError.create.Unknown(err)
-  //   );
-
-  //   expect(result).toBeInstanceOf(Erreur);
-  //   expect(result.kind).toBe('Unknown');
-
-  //   const result2 = MyError.wrap(
-  //     () => {
-  //       throw 'Yolo';
-  //     },
-  //     (err) => MyError.create.Unknown(err)
-  //   );
-
-  //   expect(result2).toBeInstanceOf(Erreur);
-  //   expect(result2.kind).toBe('Unknown');
-  // });
 });
 
-// describe('WrapAsync', () => {
-//   const MyError = new ErreursMap({
-//     Unknown: (error: unknown) => ({ message: `Unknow error`, error }),
-//     InvalidNumber: (number: number) => ({ message: `Invalid number`, number }),
-//   });
+describe('Cause', () => {
+  test('Cause is undefined by default', () => {
+    const MyErreur = Erreur.declare<{ num: number }>('MyErreur');
+    const err = MyErreur.create({ num: 42 });
+    expect(err.cause).toBeUndefined();
+  });
 
-//   test('Return result when no error', async () => {
-//     const result = await MyError.wrapAsync(
-//       () => Promise.resolve(42),
-//       (err) => MyError.create.Unknown(err)
-//     );
-
-//     expect(result).toBe(42);
-//   });
-
-//   test('Return error when error is MyError', async () => {
-//     const result = await MyError.wrapAsync(
-//       async () => {
-//         throw MyError.create.InvalidNumber(-4);
-//       },
-//       (err) => MyError.create.Unknown(err)
-//     );
-
-//     expect(result).toBeInstanceOf(Erreur);
-//     expect(result.kind).toBe('InvalidNumber');
-//   });
-
-//   test('Return mapOtherErr result when error is not MyError', async () => {
-//     const result = await MyError.wrapAsync(
-//       async () => {
-//         throw new Error('oops');
-//       },
-//       (err) => MyError.create.Unknown(err)
-//     );
-
-//     expect(result).toBeInstanceOf(Erreur);
-//     expect(result.kind).toBe('Unknown');
-
-//     const result2 = await MyError.wrapAsync(
-//       async () => {
-//         throw 'Yolo';
-//       },
-//       (err) => MyError.create.Unknown(err)
-//     );
-
-//     expect(result2).toBeInstanceOf(Erreur);
-//     expect(result2.kind).toBe('Unknown');
-//   });
-// });
+  test('createWithCause', () => {
+    const MyErreur = Erreur.declare<{ num: number }>('MyErreur');
+    const cause = MyErreur.create({ num: 0 });
+    const err = MyErreur.createWithCause(cause, { num: 42 });
+    expect(err.cause).toBe(cause);
+    expect(err.erreurCause).toBe(cause);
+  });
+});

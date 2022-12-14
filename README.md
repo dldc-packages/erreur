@@ -2,96 +2,145 @@
 
 > Type safe custom errors
 
-## Usage
+## Type safe custom errors ?
 
-This library allows you to create custom errors with type safety. It's composed of two classes:
+This librairy expose a way to define and manipulate custom errors in a type safe way.
 
-- `Erreur`: The custom error class.
-- `ErreursMap`: A class to help you create a set of custom errors.
+To acheive this, it uses a class called `Erreur` (error in french) that extends the native `Error` class. This class can contain data but in order to ensure type safety, you cannot access this data directly. Instead, you must use a declaration that can be created using the `Erreur.declare` static method.
 
-## `Erreur`
+Here is a simple example:
 
-The `Erreur` class extends the base `Error` class and adds the following properties:
+```ts
+import { Erreur } from 'erreur';
 
-- `kind`: A string that represents the kind of error.
-- `infos`: An object that contains the `kind`, `message` and any additional information about the error
+// Declare a new error with a type and a name
+const MyError = Erreur.declare<{ message: string }>('MyError');
 
-```typescript
-type MyErreurInfos = {
-  kind: 'MyErreur';
-  message: string;
-  num: number;
-};
+// Use the declaration to create a new error
+const error = MyError.create({ message: 'Hello world' });
 
-const err = new Erreur<MyErreurInfos>({
-  kind: 'MyErreur',
-  message: 'Something went wrong',
-  num: 42,
+// Use the declaration to extract the data from the error
+const matched = MyError.match(error);
+// matched has type { message: string } | null
+```
+
+## API
+
+### Declaring errors
+
+#### `Erreur.declare`
+
+The basic way to declare an error is to use the `Erreur.declare` static method. This method takes a type and a name as parameters and returns a declaration.
+
+```ts
+const MyError = Erreur.declare<{ message: string }>('MyError');
+```
+
+#### Transforms
+
+The `withTransform` method of an `ErreurDeclaration` allows you to create a clone of the declaration that take custom parameters and transform them into the data of the error. Note that the original declaration is not modified and both declarations can be used to create errors (they are the same "key").
+
+```ts
+const MyError = Erreur.declare<{ message: string }>('MyError');
+const MyErrorWithTransform = MyError.withTransform((message: string) => ({ message }));
+
+const err1 = MyError.create({ message: 'Hello world' });
+const err2 = MyErrorWithTransform.create('Hello world');
+
+// MyError.match(err1) === MyErrorWithTransform.match(err2) === { message: 'Hello world' }
+```
+
+You can also use `Erreur.declareWithTransform` to declare an error and apply a transform at the same time.
+
+```ts
+const MyError = Erreur.declareWithTransform<{ message: string }>('MyError', (message: string) => ({
+  message,
+}));
+
+// TS will infer the type of the transform
+const MyError = Erreur.declareWithTransform('MyError', (message: string) => ({ message }));
+```
+
+#### Decalaring multiple errors
+
+The `Erreur.declareMany` let you declare multiple errors at the same time. It takes an object as parameter where the keys are the names of the errors and the values are transform functions.
+
+```ts
+const { MyError, MyOtherError } = Erreur.declareMany({
+  MyError: (message: string) => ({ message }),
+  MyOtherError: (num: number) => ({ num }),
 });
+```
 
-expect(err.kind).toBe('MyErreur');
-expect(err.infos).toEqual({
-  kind: 'MyErreur',
-  message: 'Something went wrong',
-  num: 42,
+You can also use the `Erreur.declareManyFromTypes` to declare multiple errors from a single type.
+
+```ts
+interface MyErrors {
+  NumError: number;
+  FatalError: { message: string };
+}
+
+// Note that declareManyFromTypes take no parameter and return a `declareMany` function
+const { NumError, FatalError } = Erreur.declareManyFromTypes<MyErrors>()({
+  NumError: (num: number) => num,
+  FatalError: (message: string) => ({ message }),
 });
 ```
 
-## `ErreursMap`
+#### `is`, `isOneOf` and `isOneOfObj`
 
-The `ErreursMap` class allow you to define and manipulate a set of `Erreur`s.
+The `Erreur.is` static method can be used to check if an value is an `Erreur`.
 
-To create an `ErreursMap`, create a new instance with an object as parameter. Each property of the object should be a function that take any number of arguments and return an object with `message` and any additional information about the error.
+You can also pass a `ErreurDeclaration` as second parameter to check if the `Erreur` contains the declaration data.
 
-```typescript
-const UserErreurs = new ErreursMap({
-  UnknownError: (error: Error) => ({ message: error.message, error }),
-  UserNotFound: (userId: string) => ({ message: 'User not found', userId }),
-  UserAlreadyExists: (username: string) => ({ message: 'User already exists', username }),
-});
+```ts
+const NumErreur = Erreur.declare<number>('NumErreur');
+const BoolErreur = Erreur.declare<boolean>('BoolErreur');
+
+function handleError(err: unknown) {
+  if (Erreur.is(err)) {
+    // err is an Erreur
+  }
+
+  if (Erreur.is(err, NumErreur)) {
+    // err is an Erreur and contains the data of NumErreur
+  }
+
+  if (Erreur.isOneOf(err, [NumErreur, BoolErreur])) {
+    // err is an Erreur and contains the data of either NumErreur or BoolErreur
+  }
+
+  if (Erreur.isOneOfObj(err, { NumErreur, BoolErreur })) {
+    // err is an Erreur and contains the data of either NumErreur or BoolErreur
+  }
+}
 ```
 
-### `.create`
+#### `match`, `matchObj` and `matchObjOrThrow`
 
-Once the `ErreursMap` created you can use it to create `Erreur` instances with `UserErreurs.create.[ErrorKind](...args)`:
+This function is similar to `is` but instead of returning a boolean, it returns the data of the error if it matches the declaration.
 
-```typescript
-const err = UserErreurs.create.UserAlreadyExists('paul-bocuse');
+Note that `matchObj` return an object with `{ kind: string, data: T }` where `kind` is the key of the declaration and `data` is the data of the error.
 
-// err is an instance of Erreur
+```ts
+const NumErreur = Erreur.declare<number>('NumErreur');
+const BoolErreur = Erreur.declare<boolean>('BoolErreur');
+
+function handleError(err: unknown) {
+  const matched = Erreur.match(err, NumErreur);
+  // matched has type number | null
+
+  const matchedObj = Erreur.matchObj(err, { NumErreur, BoolErreur });
+  // matchedObj has type { kind: 'NumErreur', data: number } | { kind: 'BoolErreur', data: boolean } | null
+}
 ```
 
-### `.is`
+#### Error `cause` and `erreurCause`
 
-You can check wether an error is one of the errors defined in the `ErreursMap` with `UserErreurs.is(err)`:
+#### `warp` and `wrapAsync`
 
-```typescript
-UserErreurs.is(err); // true
-```
+Wrap a function to make sure it either returns a value or throws an `Erreur` instance.
 
-**Note**: The `.is` check if the value is an instance of `Erreur` and if the `kind` is one of the errors defined in the `ErreursMap`.
+#### `resolve` and `resolveAsync`
 
-### `.wrap`
-
-The `.wrap` method allow you to run code and return either teh result or one of the `Erreur` specified in the `ErreursMap`.
-
-The `.wrap` method takes two parameters:
-
-- `fn`: The function to run.
-- `mapOtherErr`: A function that will be used to transform any error that is not one of the `ErreursMap` errors into a valid one.
-
-```typescript
-const result = UserErreurs.wrap(
-  () => {
-    // this could throw
-    createNewUser();
-  },
-  (err) => UserErreurs.create.UnknownError(err)
-);
-
-// result is either an Erreur or the result of the function
-```
-
-### `.wrapAsync`
-
-The `.wrapAsync` method is similar to `.wrap` but it takes an async function instead of a regular function and returns a Promise.
+Smae as `wrap` and `wrapAsync` but returns the `Erreur` instance instead of throwing it.
