@@ -38,19 +38,58 @@ interface ErreurInternal<Data> {
 export class Erreur extends Error {
   private [INTERNAL]: ErreurInternal<any>;
 
+  /**
+   * Make sure the function either returns a value or throws an Erreur instance
+   */
   static readonly wrap = wrap;
+  /**
+   * Same as wrap but for async functions
+   */
   static readonly wrapAsync = wrapAsync;
 
+  /**
+   * Same as wrap but returns the error instead of throwing it
+   */
   static readonly resolve = resolve;
+  /**
+   * Same as resolve but for async functions
+   */
   static readonly resolveAsync = resolveAsync;
 
+  /**
+   * Returns true if the error is an Erreur instance
+   * If a type is provided, it will also check if the error is of the provided type
+   */
   static readonly is = is;
+  /**
+   * Returns true if the error is an Erreur instance and is of one of the provided types
+   */
   static readonly isOneOf = isOneOf;
+  /**
+   * Returns true if the error is an Erreur instance and is of one of the value of the provided object
+   */
   static readonly isOneOfObj = isOneOfObj;
 
+  /**
+   * Returns the matched erreur data or null
+   */
   static readonly match = match;
+  /**
+   * Either returns the matched erreur data or throw the error
+   */
   static readonly matchObj = matchObj;
+  /**
+   * Either returns the matched erreur data or throw the error
+   */
   static readonly matchObjOrThrow = matchObjOrThrow;
+  /**
+   * Match the error then execute the provided function with the matched data
+   */
+  static readonly matchObjExec = matchObjExec;
+  /**
+   * Same as matchObjExec but throw the error if the error is not macthed
+   */
+  static readonly matchObjExecOrThrow = matchObjExecOrThrow;
 
   static readonly declareWithTransform = declareWithTransform;
 
@@ -99,9 +138,6 @@ export class Erreur extends Error {
   }
 }
 
-/**
- * Make sure the function either returns a value or throws an Erreur
- */
 export function wrap<Res>(fn: () => Res, onError: OnError): Res {
   try {
     return fn();
@@ -124,9 +160,6 @@ export async function wrapAsync<Res>(fn: () => Promise<Res>, onError: OnError): 
   }
 }
 
-/**
- * Same as wrap but returns the error instead of throwing it
- */
 export function resolve<Res>(fn: () => Res, onError: OnError): Res | Erreur {
   try {
     return wrap(fn, onError);
@@ -213,6 +246,30 @@ function matchObjOrThrow<Types extends TypesBase>(
     return res;
   }
   throw error;
+}
+
+function matchObjExec<Types extends TypesBase>(error: unknown, types: Types) {
+  return function expect<Result>(execs: {
+    [K in keyof Types]: (data: Types[K], type: ErreurDeclaration<Types[K]>) => Result;
+  }): Result | null {
+    const res = matchObj(error, types);
+    if (res) {
+      return execs[res.kind](res.data as any, types[res.kind]);
+    }
+    return null;
+  };
+}
+
+function matchObjExecOrThrow<Types extends TypesBase>(error: unknown, types: Types) {
+  return function expect<Result>(execs: {
+    [K in keyof Types]: (data: Types[K], type: ErreurDeclaration<Types[K]>) => Result;
+  }): Result {
+    const res = matchObj(error, types);
+    if (res) {
+      return execs[res.kind](res.data as any, types[res.kind]);
+    }
+    throw error;
+  };
 }
 
 function declareWithTransform<Data, Params extends readonly any[]>(
