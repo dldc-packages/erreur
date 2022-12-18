@@ -181,7 +181,7 @@ function match<Data>(error: unknown, type: ErreurDeclaration<Data>): Data | null
   return null;
 }
 
-export type TypesBase = Record<string, ErreurTypeAny>;
+export type TypesBase = Record<string, any>;
 
 export type DataFromTypes<Types extends TypesBase> = {
   [K in keyof Types]: { kind: K; data: Types[K][typeof INTERNAL] };
