@@ -105,3 +105,19 @@ describe('Cause', () => {
     expect(err.erreurCause).toBe(cause);
   });
 });
+
+describe('Match', () => {
+  test('matchObj', () => {
+    const Erreurs = Erreur.declareMany({
+      ErrA: (num: number) => ({ num }),
+      ErrB: (str: string) => ({ str }),
+      ErrC: (bool: boolean) => ({ bool }),
+    });
+
+    const err = Erreurs.ErrA.create(42);
+
+    const res = Erreur.matchObj(err, Erreurs);
+
+    expect(res?.kind).toBe('ErrA');
+  });
+});

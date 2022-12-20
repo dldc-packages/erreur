@@ -3,13 +3,15 @@ const DATA = Symbol('DATA');
 
 export type OnError = (error: unknown) => Erreur;
 
-export type ErreurMap = Record<string, ErreurTypeAny>;
+export type ErreurMap = Record<string, ErreurDeclarationAny>;
 
-export type ErreurTypeAny = ErreurDeclaration<any, any>;
+export type ErreurDeclarationAny = ErreurDeclaration<any, any>;
 
 export type ErreurMapUnion<Erreurs extends ErreurMap> = {
   [K in keyof Erreurs]: { kind: K; data: Erreurs[K] };
 }[keyof Erreurs];
+
+export type ObjDeclarationsBase = Record<string, ErreurDeclarationAny>;
 
 /**
  * This is like a key to instantiate an Erreur and extract its data
@@ -86,14 +88,6 @@ export class Erreur extends Error {
    * Either returns the matched erreur data or throw the error
    */
   static readonly matchObjOrThrow = matchObjOrThrow;
-  /**
-   * Match the error then execute the provided function with the matched data
-   */
-  static readonly matchObjExec = matchObjExec;
-  /**
-   * Same as matchObjExec but throw the error if the error is not macthed
-   */
-  static readonly matchObjExecOrThrow = matchObjExecOrThrow;
 
   static readonly declareWithTransform = declareWithTransform;
 
@@ -133,11 +127,11 @@ export class Erreur extends Error {
     Object.setPrototypeOf(this, new.target.prototype);
   }
 
-  is(type: ErreurTypeAny): boolean {
+  is(type: ErreurDeclarationAny): boolean {
     return is(this, type);
   }
 
-  isOneOf(types: ErreurTypeAny[]): boolean {
+  isOneOf(types: ErreurDeclarationAny[]): boolean {
     return isOneOf(this, types);
   }
 }
@@ -183,7 +177,7 @@ export async function resolveAsync<Res>(
   }
 }
 
-function is(error: unknown, type?: ErreurTypeAny): error is Erreur {
+function is(error: unknown, type?: ErreurDeclarationAny): error is Erreur {
   if (error instanceof Erreur) {
     if (type) {
       return error[INTERNAL].declaration[INTERNAL] === type[INTERNAL];
@@ -193,14 +187,14 @@ function is(error: unknown, type?: ErreurTypeAny): error is Erreur {
   return false;
 }
 
-function isOneOf(error: unknown, types: ErreurTypeAny[]): error is Erreur {
+function isOneOf(error: unknown, types: ErreurDeclarationAny[]): error is Erreur {
   if (error instanceof Erreur) {
     return types.some((type) => error[INTERNAL].declaration[INTERNAL] === type[INTERNAL]);
   }
   return false;
 }
 
-function isOneOfObj(error: unknown, types: TypesBase): error is Erreur {
+function isOneOfObj(error: unknown, types: ObjDeclarationsBase): error is Erreur {
   if (error instanceof Erreur) {
     return Object.values(types).some(
       (type) => error[INTERNAL].declaration[INTERNAL] === type[INTERNAL]
@@ -227,13 +221,11 @@ function matchExec<Data, Result>(
   return undefined;
 }
 
-export type TypesBase = Record<string, any>;
-
-export type DataFromTypes<Types extends TypesBase> = {
+export type DataFromTypes<Types extends ObjDeclarationsBase> = {
   [K in keyof Types]: { kind: K; data: Types[K][typeof INTERNAL] };
 }[keyof Types];
 
-function matchObj<Types extends TypesBase>(
+function matchObj<Types extends ObjDeclarationsBase>(
   error: unknown,
   types: Types
 ): DataFromTypes<Types> | undefined {
@@ -250,7 +242,7 @@ function matchObj<Types extends TypesBase>(
   return undefined;
 }
 
-function matchObjOrThrow<Types extends TypesBase>(
+function matchObjOrThrow<Types extends ObjDeclarationsBase>(
   error: unknown,
   types: Types
 ): DataFromTypes<Types> {
@@ -259,30 +251,6 @@ function matchObjOrThrow<Types extends TypesBase>(
     return res;
   }
   throw error;
-}
-
-function matchObjExec<Types extends TypesBase>(error: unknown, types: Types) {
-  return function expect<Result>(execs: {
-    [K in keyof Types]: (data: Types[K], type: ErreurDeclaration<Types[K]>) => Result;
-  }): Result | undefined {
-    const res = matchObj(error, types);
-    if (res) {
-      return execs[res.kind](res.data as any, types[res.kind]);
-    }
-    return undefined;
-  };
-}
-
-function matchObjExecOrThrow<Types extends TypesBase>(error: unknown, types: Types) {
-  return function expect<Result>(execs: {
-    [K in keyof Types]: (data: Types[K], type: ErreurDeclaration<Types[K]>) => Result;
-  }): Result {
-    const res = matchObj(error, types);
-    if (res !== undefined) {
-      return execs[res.kind](res.data as any, types[res.kind]);
-    }
-    throw error;
-  };
 }
 
 function declareWithTransform<Data, Params extends readonly any[]>(
