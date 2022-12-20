@@ -3,15 +3,11 @@ const DATA = Symbol('DATA');
 
 export type OnError = (error: unknown) => Erreur;
 
-export type ErreurMap = Record<string, ErreurDeclarationAny>;
-
 export type ErreurDeclarationAny = ErreurDeclaration<any, any>;
 
-export type ErreurMapUnion<Erreurs extends ErreurMap> = {
-  [K in keyof Erreurs]: { kind: K; data: Erreurs[K] };
-}[keyof Erreurs];
-
 export type ObjDeclarationsBase = Record<string, ErreurDeclarationAny>;
+
+export type ObjTypesBase = Record<string, any>;
 
 /**
  * This is like a key to instantiate an Erreur and extract its data
@@ -109,8 +105,7 @@ export class Erreur extends Error {
           new Erreur({ declaration: type, data: transform(...params), erreurCause: cause }),
         is: (error: unknown): error is Erreur => is(error, type),
         match: (error: unknown) => match(error, type),
-        matchExec: <Result>(error: unknown, fn: (data: Data) => Result) =>
-          matchExec(error, type, fn),
+        matchExec: <Result>(error: unknown, fn: (data: Data) => Result) => matchExec(error, type, fn),
         withTransform: (subTransform) => declareWithTransform(subTransform as any) as any,
       };
       return type;
@@ -165,10 +160,7 @@ export function resolve<Res>(fn: () => Res, onError: OnError): Res | Erreur {
   }
 }
 
-export async function resolveAsync<Res>(
-  fn: () => Promise<Res>,
-  onError: OnError
-): Promise<Res | Erreur> {
+export async function resolveAsync<Res>(fn: () => Promise<Res>, onError: OnError): Promise<Res | Erreur> {
   try {
     return await wrapAsync(fn, onError);
   } catch (error) {
@@ -195,9 +187,7 @@ function isOneOf(error: unknown, types: ErreurDeclarationAny[]): error is Erreur
 
 function isOneOfObj(error: unknown, types: ObjDeclarationsBase): error is Erreur {
   if (error instanceof Erreur) {
-    return Object.values(types).some(
-      (type) => error[INTERNAL].declaration[INTERNAL] === type[INTERNAL]
-    );
+    return Object.values(types).some((type) => error[INTERNAL].declaration[INTERNAL] === type[INTERNAL]);
   }
   return false;
 }
@@ -220,20 +210,20 @@ function matchExec<Data, Result>(
   return undefined;
 }
 
-export type DataFromTypes<Types extends ObjDeclarationsBase> = {
-  [K in keyof Types]: { kind: K; data: Types[K][typeof INTERNAL] };
+export type DataFromTypes<Types extends ObjTypesBase> = {
+  [K in keyof Types]: { kind: K; data: Types[K] };
 }[keyof Types];
 
-function matchObj<Types extends ObjDeclarationsBase>(
+function matchObj<Declarations extends ObjDeclarationsBase>(
   error: unknown,
-  types: Types
-): DataFromTypes<Types> | undefined {
+  declarations: Declarations
+): DataFromTypes<{ [K in keyof Declarations]: Declarations[K][typeof DATA] }> | undefined {
   if (!is(error)) {
     return undefined;
   }
-  const keys = Object.keys(types);
+  const keys = Object.keys(declarations);
   for (const key of keys) {
-    const type = types[key];
+    const type = declarations[key];
     if (error[INTERNAL].declaration[INTERNAL] === type[INTERNAL]) {
       return { kind: key, data: error[INTERNAL].data };
     }
@@ -254,9 +244,7 @@ export type ErreursFromCreators<Creators extends CreatorsBase> = {
   [K in keyof Creators]: ErreurDeclaration<ReturnType<Creators[K]>, Parameters<Creators[K]>>;
 };
 
-function declareMany<Creators extends CreatorsBase>(
-  creators: Creators
-): ErreursFromCreators<Creators> {
+function declareMany<Creators extends CreatorsBase>(creators: Creators): ErreursFromCreators<Creators> {
   const res: any = {};
   for (const key of Object.keys(creators)) {
     res[key] = declareWithTransform(key, creators[key]);

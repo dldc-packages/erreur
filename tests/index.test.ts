@@ -1,4 +1,4 @@
-import { Erreur } from '../src/mod';
+import { DataFromTypes, Erreur } from '../src/mod';
 
 test('Declare Erreur', () => {
   const MyErreur = Erreur.declare<{ num: number }>('MyErreur');
@@ -23,6 +23,10 @@ test('Erreur.declareFromTypes', () => {
     MyErreur: { num: number };
     MyOtherErreur: { str: string };
   }
+
+  type IErreur = DataFromTypes<IErreurs>;
+  const err: IErreur = { kind: 'MyErreur', data: { num: 42 } };
+  expect(err).toBeDefined();
 
   const Erreurs = Erreur.declareManyFromTypes<IErreurs>()({
     MyErreur: (num: number) => ({ num }),
