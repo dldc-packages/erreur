@@ -120,4 +120,18 @@ describe('Match', () => {
 
     expect(res?.kind).toBe('ErrA');
   });
+
+  test('macthExec', () => {
+    const Erreurs = Erreur.declareMany({
+      ErrA: (num: number) => ({ num }),
+      ErrB: (str: string) => ({ str }),
+      ErrC: (bool: boolean) => ({ bool }),
+    });
+
+    const err = Erreurs.ErrA.create(42);
+
+    const res = Erreur.matchExec(err, Erreurs.ErrA, (err) => err.num);
+
+    expect(res).toBe(42);
+  });
 });

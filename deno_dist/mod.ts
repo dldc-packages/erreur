@@ -29,10 +29,11 @@ export interface ErreurDeclaration<Data, Params extends readonly any[] = [Data]>
   readonly createWithCause: (cause: Erreur, ...params: Params) => Erreur;
   readonly is: (error: unknown) => error is Erreur;
   readonly match: (error: unknown) => Data | undefined;
+  readonly matchExec: <Result>(error: unknown, fn: (data: Data) => Result) => Result | undefined;
 }
 
 interface ErreurInternal<Data> {
-  readonly declaration: ErreurDeclaration<Data>;
+  readonly declaration: ErreurDeclaration<Data, any>;
   readonly data: Data;
   readonly erreurCause?: Erreur;
 }
@@ -84,10 +85,6 @@ export class Erreur extends Error {
    * Either returns the matched erreur data or throw the error
    */
   static readonly matchObj = matchObj;
-  /**
-   * Either returns the matched erreur data or throw the error
-   */
-  static readonly matchObjOrThrow = matchObjOrThrow;
 
   static readonly declareWithTransform = declareWithTransform;
 
@@ -112,6 +109,8 @@ export class Erreur extends Error {
           new Erreur({ declaration: type, data: transform(...params), erreurCause: cause }),
         is: (error: unknown): error is Erreur => is(error, type),
         match: (error: unknown) => match(error, type),
+        matchExec: <Result>(error: unknown, fn: (data: Data) => Result) =>
+          matchExec(error, type, fn),
         withTransform: (subTransform) => declareWithTransform(subTransform as any) as any,
       };
       return type;
@@ -203,7 +202,7 @@ function isOneOfObj(error: unknown, types: ObjDeclarationsBase): error is Erreur
   return false;
 }
 
-function match<Data>(error: unknown, type: ErreurDeclaration<Data>): Data | undefined {
+function match<Data>(error: unknown, type: ErreurDeclaration<Data, any>): Data | undefined {
   if (is(error, type)) {
     return error[INTERNAL].data;
   }
@@ -212,7 +211,7 @@ function match<Data>(error: unknown, type: ErreurDeclaration<Data>): Data | unde
 
 function matchExec<Data, Result>(
   error: unknown,
-  type: ErreurDeclaration<Data>,
+  type: ErreurDeclaration<Data, any>,
   exec: (data: Data) => Result
 ): Result | undefined {
   if (is(error, type)) {
@@ -240,17 +239,6 @@ function matchObj<Types extends ObjDeclarationsBase>(
     }
   }
   return undefined;
-}
-
-function matchObjOrThrow<Types extends ObjDeclarationsBase>(
-  error: unknown,
-  types: Types
-): DataFromTypes<Types> {
-  const res = matchObj(error, types);
-  if (res !== undefined) {
-    return res;
-  }
-  throw error;
 }
 
 function declareWithTransform<Data, Params extends readonly any[]>(
