@@ -26,7 +26,7 @@ export interface ErreurDeclaration<Data, Params extends readonly any[] = [Data]>
   readonly create: (...params: Params) => Erreur;
   readonly createWithCause: (cause: Erreur, ...params: Params) => Erreur;
   readonly is: (error: unknown) => error is Erreur;
-  readonly match: (error: unknown) => Data | null;
+  readonly match: (error: unknown) => Data | undefined;
 }
 
 interface ErreurInternal<Data> {
@@ -71,9 +71,13 @@ export class Erreur extends Error {
   static readonly isOneOfObj = isOneOfObj;
 
   /**
-   * Returns the matched erreur data or null
+   * Returns the matched erreur data or undefined
    */
   static readonly match = match;
+  /**
+   * Runs the provided function with the matched data if the error is matched
+   */
+  static readonly matchExec = matchExec;
   /**
    * Either returns the matched erreur data or throw the error
    */
@@ -179,7 +183,7 @@ export async function resolveAsync<Res>(
   }
 }
 
-function is(error: unknown, type?: ErreurTypeAny): error is Error {
+function is(error: unknown, type?: ErreurTypeAny): error is Erreur {
   if (error instanceof Erreur) {
     if (type) {
       return error[INTERNAL].declaration[INTERNAL] === type[INTERNAL];
@@ -205,13 +209,22 @@ function isOneOfObj(error: unknown, types: TypesBase): error is Erreur {
   return false;
 }
 
-function match<Data>(error: unknown, type: ErreurDeclaration<Data>): Data | null {
-  if (error instanceof Erreur) {
-    if (error[INTERNAL].declaration[INTERNAL] === type[INTERNAL]) {
-      return error[INTERNAL].data;
-    }
+function match<Data>(error: unknown, type: ErreurDeclaration<Data>): Data | undefined {
+  if (is(error, type)) {
+    return error[INTERNAL].data;
   }
-  return null;
+  return undefined;
+}
+
+function matchExec<Data, Result>(
+  error: unknown,
+  type: ErreurDeclaration<Data>,
+  exec: (data: Data) => Result
+): Result | undefined {
+  if (is(error, type)) {
+    return exec(error[INTERNAL].data);
+  }
+  return undefined;
 }
 
 export type TypesBase = Record<string, any>;
@@ -223,9 +236,9 @@ export type DataFromTypes<Types extends TypesBase> = {
 function matchObj<Types extends TypesBase>(
   error: unknown,
   types: Types
-): DataFromTypes<Types> | null {
-  if (!(error instanceof Erreur)) {
-    return null;
+): DataFromTypes<Types> | undefined {
+  if (!is(error)) {
+    return undefined;
   }
   const keys = Object.keys(types);
   for (const key of keys) {
@@ -234,7 +247,7 @@ function matchObj<Types extends TypesBase>(
       return { kind: key, data: error[INTERNAL].data };
     }
   }
-  return null;
+  return undefined;
 }
 
 function matchObjOrThrow<Types extends TypesBase>(
@@ -242,7 +255,7 @@ function matchObjOrThrow<Types extends TypesBase>(
   types: Types
 ): DataFromTypes<Types> {
   const res = matchObj(error, types);
-  if (res) {
+  if (res !== undefined) {
     return res;
   }
   throw error;
@@ -251,12 +264,12 @@ function matchObjOrThrow<Types extends TypesBase>(
 function matchObjExec<Types extends TypesBase>(error: unknown, types: Types) {
   return function expect<Result>(execs: {
     [K in keyof Types]: (data: Types[K], type: ErreurDeclaration<Types[K]>) => Result;
-  }): Result | null {
+  }): Result | undefined {
     const res = matchObj(error, types);
     if (res) {
       return execs[res.kind](res.data as any, types[res.kind]);
     }
-    return null;
+    return undefined;
   };
 }
 
@@ -265,7 +278,7 @@ function matchObjExecOrThrow<Types extends TypesBase>(error: unknown, types: Typ
     [K in keyof Types]: (data: Types[K], type: ErreurDeclaration<Types[K]>) => Result;
   }): Result {
     const res = matchObj(error, types);
-    if (res) {
+    if (res !== undefined) {
       return execs[res.kind](res.data as any, types[res.kind]);
     }
     throw error;
