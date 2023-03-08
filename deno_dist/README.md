@@ -61,6 +61,23 @@ const MyError = Erreur.declareWithTransform<{ message: string }>('MyError', (mes
 const MyError = Erreur.declareWithTransform('MyError', (message: string) => ({ message }));
 ```
 
+#### Custom message
+
+By default the `Erreur` instance will have a message that is the name of the error followed by the data stringified as JSON.
+
+You can override this behavior by passing a custom message as the second parameter of the `Erreur.declare` method.
+
+```ts
+const MyError = Erreur.declare<{ count: number }>('MyError', (data) => `Count is ${data.count}`);
+```
+
+You can also use the `withMessage` method of an `ErreurDeclaration` to create a clone of the declaration with a custom message.
+
+```ts
+const MyError = Erreur.declare<{ count: number }>('MyError');
+const MyErrorWithMessage = MyError.withMessage((data) => `Count is ${data.count}`);
+```
+
 #### Decalaring multiple errors
 
 The `Erreur.declareMany` let you declare multiple errors at the same time. It takes an object as parameter where the keys are the names of the errors and the values are transform functions.
@@ -135,12 +152,98 @@ function handleError(err: unknown) {
 }
 ```
 
-#### Error `cause` and `erreurCause`
+#### Erreur `cause` and `erreurCause`
+
+Erreur supports the cause property of the native `Error` class. This property can be used to store the original error that caused the current error.
+With Erreur this `cause` must be an `Erreur` instance, you can access the `erreurCause` property to get the correct typing.
+
+To set the cause of an Erreur, use the `createWithCause` method of the declaration.
+
+```ts
+const SubErreur = Erreur.declare<{ message: string }>('SubErreur');
+
+const MyErreur = Erreur.declare<{ message: string }>('MyErreur');
+
+const subError = SubErreur.create({ message: 'Hello world' });
+const error = MyErreur.createWithCause({ message: 'Hello world' }, subError);
+
+// error.cause === subError
+// error.erreurCause === subError
+```
 
 #### `warp` and `wrapAsync`
 
-Wrap a function to make sure it either returns a value or throws an `Erreur` instance.
+Wrap a function to make sure it either returns a value or throws an `Erreur` instance. Not that this function does not care about what is inside the `Erreur` instance, it only checks that it is an instance of `Erreur`.
 
 #### `resolve` and `resolveAsync`
 
-Smae as `wrap` and `wrapAsync` but returns the `Erreur` instance instead of throwing it.
+Same as `wrap` and `wrapAsync` but returns the `Erreur` instance instead of throwing it.
+
+## Exposing Erreurs
+
+One of the main goal of Erreur is to allow you to expose your errors to the outside world without creating one `Error` class for each error.
+
+Say you want to build a wrapper around [`fetch`](https://developer.mozilla.org/fr/docs/Web/API/Fetch_API). You want to do some custom validation on the response and throw an error if the response is not valid. Rather than throwing random `Errors` or creating a new `Error` class for each error, you can use Erreur to create collections of Erreurs your wrapper can throw.
+
+```ts
+export const BetterFetchErreurs = Erreur.declareMany({
+  ResponseNotOK: (response: Response) => ({ response }),
+  InvalidBody: () => null,
+});
+
+export async function betterFetch() {
+  // ...
+  if (!response.ok) {
+    throw BetterFetchErreurs.ResponseNotOK.create(response);
+  }
+}
+```
+
+Now when someone uses your wrapper, they can catch the error and extract the data from it.
+
+```ts
+import { betterFetch, BetterFetchErreurs } from './better-fetch';
+
+try {
+  await betterFetch();
+} catch (err) {
+  if (Erreur.is(err, BetterFetchErreurs.ResponseNotOK)) {
+    // response is not ok
+  }
+}
+```
+
+In fact we probably want to hanlde all the possible errors our wrapper can throw, so we can use `Erreur.matchObj` to check if the error is one of the errors in our collection.
+
+```ts
+import { betterFetch, BetterFetchErreurs } from './better-fetch';
+
+try {
+  await betterFetch();
+} catch (err) {
+  const matched = Erreur.matchObj(err, BetterFetchErreurs);
+  if (matched) {
+    // { kind: 'ResponseNotOK', data: { response: Response } } | { kind: 'InvalidBody', data: null }
+  }
+}
+```
+
+You can also "combine" multiple collections of errors into a single one, for example you might have a `validator` function that expose its own errors:
+
+```ts
+try {
+  const data = await betterFetch();
+  return validator(data);
+} catch (err) {
+  const matched = Erreur.matchObj(err, {
+    ...BetterFetchErreurs,
+    ...ValidatorErreurs,
+  });
+  if (matched) {
+    // Here we can hendle the error depending on the kind
+    // { kind: 'ResponseNotOK', data: { response: Response } } | { kind: 'InvalidBody', data: null } | { kind: 'InvalidEmail', data: string }
+  }
+  // Error not handled
+  throw err;
+}
+```

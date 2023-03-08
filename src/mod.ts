@@ -9,6 +9,8 @@ export type ObjDeclarationsBase = Record<string, ErreurDeclarationAny>;
 
 export type ObjTypesBase = Record<string, any>;
 
+export type GetMessage<Data> = (data: Data, declaration: ErreurDeclaration<Data>) => string;
+
 /**
  * This is like a key to instantiate an Erreur and extract its data
  */
@@ -20,6 +22,7 @@ export interface ErreurDeclaration<Data, Params extends readonly any[] = [Data]>
   readonly withTransform: <Params extends readonly any[]>(
     transform: (...params: Params) => Data
   ) => ErreurDeclaration<Data, Params>;
+  readonly withMessage: (message: string | GetMessage<Data>) => ErreurDeclaration<Data, Params>;
 
   readonly create: (...params: Params) => Erreur;
   readonly createWithCause: (cause: Erreur, ...params: Params) => Erreur;
@@ -31,11 +34,15 @@ export interface ErreurDeclaration<Data, Params extends readonly any[] = [Data]>
 interface ErreurInternal<Data> {
   readonly declaration: ErreurDeclaration<Data, any>;
   readonly data: Data;
+  readonly message: string;
   readonly erreurCause?: Erreur;
 }
 
 export class Erreur extends Error {
   private [INTERNAL]: ErreurInternal<any>;
+
+  static readonly DEFAULT_MESSAGE: GetMessage<any> = (data, declaration) =>
+    `${declaration.name} ${JSON.stringify(data)}`;
 
   /**
    * Make sure the function either returns a value or throws an Erreur instance
@@ -90,30 +97,40 @@ export class Erreur extends Error {
   public readonly erreurCause?: Erreur;
   public cause?: Error | undefined;
 
-  static declare<Data>(name: string): ErreurDeclaration<Data> {
+  static declare<Data>(
+    name: string,
+    message: string | GetMessage<Data> = Erreur.DEFAULT_MESSAGE
+  ): ErreurDeclaration<Data> {
     const symbol = Symbol(`[Erreur]: ${name}`);
 
-    return declareWithTransform((data: Data) => data);
+    return declareInternal((data: Data) => data, message);
 
-    function declareWithTransform(transform: (...params: any[]) => Data) {
+    function declareInternal(transform: (...params: any[]) => Data, getMessage: string | GetMessage<Data>) {
+      const getMessageResolved = typeof getMessage === 'string' ? () => getMessage : getMessage;
       const type: ErreurDeclaration<Data> = {
         [INTERNAL]: symbol,
         [DATA]: null as any,
         name,
-        create: (...params: any[]) => new Erreur({ declaration: type, data: transform(...params) }),
-        createWithCause: (cause: Erreur, ...params: any[]) =>
-          new Erreur({ declaration: type, data: transform(...params), erreurCause: cause }),
+        create: (...params: any[]) => {
+          const data = transform(...params);
+          return new Erreur({ declaration: type, data, message: getMessageResolved(data, type) });
+        },
+        createWithCause: (cause: Erreur, ...params: any[]) => {
+          const data = transform(...params);
+          return new Erreur({ declaration: type, data, erreurCause: cause, message: getMessageResolved(data, type) });
+        },
         is: (error: unknown): error is Erreur => is(error, type),
         match: (error: unknown) => match(error, type),
         matchExec: <Result>(error: unknown, fn: (data: Data) => Result) => matchExec(error, type, fn),
-        withTransform: (subTransform) => declareWithTransform(subTransform as any) as any,
+        withTransform: (subTransform) => declareInternal(subTransform as any, getMessage) as any,
+        withMessage: (subMessage) => declareInternal(transform, subMessage as any) as any,
       };
       return type;
     }
   }
 
   private constructor(internal: ErreurInternal<any>) {
-    super(`[Erreur]: ${internal.declaration.name} ${JSON.stringify(internal.data)}`);
+    super(`[Erreur]: ${internal.message}`);
     this[INTERNAL] = internal;
     this.erreurCause = internal.erreurCause;
     this.cause = internal.erreurCause;
@@ -233,9 +250,10 @@ function matchObj<Declarations extends ObjDeclarationsBase>(
 
 function declareWithTransform<Data, Params extends readonly any[]>(
   name: string,
-  transform: (...params: Params) => Data
+  transform: (...params: Params) => Data,
+  message?: string | GetMessage<Data>
 ): ErreurDeclaration<Data, Params> {
-  return Erreur.declare<Data>(name).withTransform(transform);
+  return Erreur.declare<Data>(name, message).withTransform(transform);
 }
 
 export type CreatorsBase = Record<string, (...args: any[]) => any>;

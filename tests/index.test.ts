@@ -139,3 +139,62 @@ describe('Match', () => {
     expect(res).toBe(42);
   });
 });
+
+describe('Message', () => {
+  test('default message is name and data as JSON', () => {
+    const MyErreur = Erreur.declare<{ num: number }>('MyErreur');
+    const err = MyErreur.create({ num: 42 });
+    expect(err.message).toBe('[Erreur]: MyErreur {"num":42}');
+  });
+
+  test('message can be overriden', () => {
+    const MyErreur = Erreur.declare<{ num: number }>('MyErreur', `MyErreur custom message`);
+    const err = MyErreur.create({ num: 42 });
+    expect(err.message).toBe('[Erreur]: MyErreur custom message');
+  });
+
+  test('message can be overriden with a function to use data and declaration', () => {
+    const MyErreur = Erreur.declare<{ num: number }>('MyErreur', (data, declaration) => {
+      return `${declaration.name} -> ${data.num}`;
+    });
+    const err = MyErreur.create({ num: 42 });
+    expect(err.message).toBe('[Erreur]: MyErreur -> 42');
+  });
+
+  test('Override message using withMessage', () => {
+    const MyErreur = Erreur.declare<{ num: number }>('MyErreur');
+    const MyErreurWithMessage = MyErreur.withMessage(`MyErreur custom message`);
+    const err1 = MyErreur.create({ num: 42 });
+    const err2 = MyErreurWithMessage.create({ num: 42 });
+
+    expect(err1.message).toBe('[Erreur]: MyErreur {"num":42}');
+    expect(err2.message).toBe('[Erreur]: MyErreur custom message');
+
+    expect(err1.is(MyErreur)).toBe(true);
+    expect(err1.is(MyErreurWithMessage)).toBe(true);
+    expect(err2.is(MyErreur)).toBe(true);
+    expect(err2.is(MyErreurWithMessage)).toBe(true);
+  });
+});
+
+describe('ErreurDeclaration methods', () => {
+  test('Declaration.is', () => {
+    const MyErreur = Erreur.declare<{ num: number }>('MyErreur');
+    const err = MyErreur.create({ num: 42 });
+    expect(MyErreur.is(err)).toBe(true);
+  });
+
+  test('Declaration.match', () => {
+    const MyErreur = Erreur.declare<{ num: number }>('MyErreur');
+    const err = MyErreur.create({ num: 42 });
+    expect(MyErreur.match(err)).toEqual({ num: 42 });
+  });
+
+  test('Declaration.matchExec', () => {
+    const fn = jest.fn();
+    const MyErreur = Erreur.declare<{ num: number }>('MyErreur');
+    const err = MyErreur.create({ num: 42 });
+    MyErreur.matchExec(err, fn);
+    expect(fn).toBeCalledWith({ num: 42 });
+  });
+});
