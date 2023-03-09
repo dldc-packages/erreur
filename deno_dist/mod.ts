@@ -41,8 +41,16 @@ interface ErreurInternal<Data> {
 export class Erreur extends Error {
   private [INTERNAL]: ErreurInternal<any>;
 
-  static readonly DEFAULT_MESSAGE: GetMessage<any> = (data, declaration) =>
-    `${declaration.name} ${JSON.stringify(data)}`;
+  /**
+   * If the data is an object with a message property, it will be used as the error message
+   * Otherwise, the error message will be the name of the error and the data as a JSON string
+   */
+  static readonly DEFAULT_MESSAGE: GetMessage<any> = (data, declaration) => {
+    if (data && 'message' in data && typeof data.message === 'string') {
+      return data.message;
+    }
+    return `${declaration.name} ${JSON.stringify(data)}`;
+  };
 
   /**
    * Make sure the function either returns a value or throws an Erreur instance
@@ -93,6 +101,7 @@ export class Erreur extends Error {
 
   static readonly declareManyFromTypes = declareManyFromTypes;
   static readonly declareMany = declareMany;
+  static readonly declareEmpty = declareEmpty;
 
   public readonly erreurCause?: Erreur;
   public cause?: Error | undefined;
@@ -246,6 +255,10 @@ function matchObj<Declarations extends ObjDeclarationsBase>(
     }
   }
   return undefined;
+}
+
+function declareEmpty(name: string, message?: string | GetMessage<never>): ErreurDeclaration<never> {
+  return declareWithTransform(name, () => null as never, message);
 }
 
 function declareWithTransform<Data, Params extends readonly any[]>(
