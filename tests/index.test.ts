@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from 'vitest';
-import { DataFromTypes, Erreur, ErreurType, matchExec, matchObj, wrap } from '../src/mod';
+import { DataFromTypes, Erreur, ErreurType } from '../src/mod';
 
 test('Basic erreur', () => {
   const MyErreur = ErreurType.create<{ num: number }>('MyErreur');
@@ -68,7 +68,7 @@ describe('Wrap', () => {
   const Unknown = ErreurType.create<{ error: unknown }>('Unknown');
 
   test('Return result when no error', () => {
-    const result = wrap(
+    const result = Erreur.wrap(
       () => 42,
       (error) => Unknown.instantiate({ error })
     );
@@ -78,7 +78,7 @@ describe('Wrap', () => {
 
   test('throw error when error is MyError', () => {
     const run = () =>
-      wrap(
+      Erreur.wrap(
         () => {
           throw InvalidNumberErreur.instantiate({ num: -4 });
         },
@@ -115,7 +115,7 @@ describe('Match', () => {
 
     const err = Erreurs.ErrA.instantiate(42);
 
-    const res = matchObj(err, Erreurs);
+    const res = Erreur.matchObj(err, Erreurs);
 
     expect(res?.kind).toBe('ErrA');
   });
@@ -129,9 +129,11 @@ describe('Match', () => {
 
     const err = Erreurs.ErrA.instantiate(42);
 
-    const res = matchExec(err, Erreurs.ErrA, (err) => err.num);
+    const res = Erreur.matchExec(err, Erreurs.ErrA, (err) => err.num);
 
     expect(res).toBe(42);
+
+    const res2 = Erreurs.ErrA.matchExec(err, (err) => err.num);
   });
 });
 
@@ -203,7 +205,7 @@ describe('ErreurType methods', () => {
     const fn = vi.fn();
     const MyErreur = ErreurType.create<{ num: number }>('MyErreur');
     const err = MyErreur.instantiate({ num: 42 });
-    matchExec(err, MyErreur, fn);
+    MyErreur.matchExec(err, fn);
     expect(fn).toBeCalledWith({ num: 42 });
   });
 });
