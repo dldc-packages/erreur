@@ -35,6 +35,12 @@ test('createFromTypes', () => {
   expect(err2).toBeInstanceOf(Erreur);
 });
 
+test('createEmpty', () => {
+  const MyErreur = ErreurType.createEmpty('MyErreur');
+  const err = MyErreur.instantiate();
+  expect(err.message).toBe('[Erreur]: MyErreur');
+});
+
 test('Erreur.createMany', () => {
   const Erreurs = ErreurType.createMany({
     MyErreur: (num: number) => ({ num }),

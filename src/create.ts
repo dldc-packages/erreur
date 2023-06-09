@@ -8,6 +8,9 @@ export const DEFAULT_MESSAGE: GetMessage<any> = (data, name) => {
   if (data && 'message' in data && typeof data.message === 'string') {
     return data.message;
   }
+  if (data === undefined) {
+    return name;
+  }
   return `${name} ${JSON.stringify(data)}`;
 };
 
@@ -23,8 +26,8 @@ export function createType<Data>(
   return new ErreurType<Data>(null, name, (data: Data) => data, getMessageResolved);
 }
 
-export function createEmptyType(name: string, message?: string | GetMessage<never>): ErreurType<never> {
-  return createTypeWithTransform(name, () => null as never, message);
+export function createEmptyType(name: string, message?: string | GetMessage<undefined>): ErreurType<undefined, []> {
+  return createTypeWithTransform(name, () => undefined, message);
 }
 
 export function createTypeWithTransform<Data, Params extends readonly any[]>(
