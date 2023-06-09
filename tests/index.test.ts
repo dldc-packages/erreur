@@ -179,10 +179,24 @@ describe('ErreurType methods', () => {
     expect(MyErreur.is(err)).toBe(true);
   });
 
+  test('ErreurType.is not match', () => {
+    const MyErreur = ErreurType.create<{ num: number }>('MyErreur');
+    const OtherErreur = ErreurType.create<string>('OtherErreur');
+    const err = MyErreur.instantiate({ num: 42 });
+    expect(OtherErreur.is(err)).toBe(false);
+  });
+
   test('ErreurType.match', () => {
     const MyErreur = ErreurType.create<{ num: number }>('MyErreur');
     const err = MyErreur.instantiate({ num: 42 });
     expect(MyErreur.match(err)).toEqual({ num: 42 });
+  });
+
+  test('ErreurType.match not', () => {
+    const MyErreur = ErreurType.create<{ num: number }>('MyErreur');
+    const OtherErreur = ErreurType.create<string>('OtherErreur');
+    const err = MyErreur.instantiate({ num: 42 });
+    expect(OtherErreur.match(err)).toEqual(undefined);
   });
 
   test('ErreurType.matchExec', () => {
@@ -207,5 +221,20 @@ describe('Extends', () => {
 
     expect(err2.match(ErrA)).toEqual({ num: 42 });
     expect(err2.match(ErrB)).toEqual({ str: 'hey' });
+  });
+
+  test('Extends with same type', () => {
+    const ErrA = ErreurType.create<{ str: string }>('ErrA');
+    const ErrB = ErreurType.create<{ num: number }>('ErrB').withParent((data) =>
+      ErrA.instantiate({ str: data.num.toString() })
+    );
+
+    const err = ErrB.instantiate({ num: 42 });
+
+    expect(err.is(ErrA)).toBe(true);
+    expect(err.is(ErrB)).toBe(true);
+
+    expect(err.match(ErrA)).toEqual({ str: '42' });
+    expect(err.match(ErrB)).toEqual({ num: 42 });
   });
 });

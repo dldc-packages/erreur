@@ -14,6 +14,8 @@ export type ErreurTypeAny = ErreurType<any, any>;
 
 export type GetMessage<Data> = (data: Data, name: string) => string;
 
+export type CreateParent<Data> = (data: Data) => Erreur;
+
 export class ErreurType<Data, Params extends readonly any[] = readonly [Data]> {
   readonly [INTERNAL]: symbol;
   readonly [DATA]: Data = null as any; // used for type only
@@ -22,7 +24,8 @@ export class ErreurType<Data, Params extends readonly any[] = readonly [Data]> {
     public readonly key: symbol | null,
     public readonly name: string,
     private readonly transform: (...params: Params) => Data,
-    private readonly getMessage: GetMessage<Data>
+    private readonly getMessage: GetMessage<Data>,
+    private readonly createParent?: CreateParent<Data>
   ) {
     this[INTERNAL] = key ?? Symbol(`[Erreur]: ${name}`);
   }
@@ -54,6 +57,10 @@ export class ErreurType<Data, Params extends readonly any[] = readonly [Data]> {
     return new ErreurType<Data, Params>(this[INTERNAL], this.name, this.transform, getMessageResolved);
   };
 
+  public readonly withParent = (createParent: CreateParent<Data>): ErreurType<Data, Params> => {
+    return new ErreurType<Data, Params>(this[INTERNAL], this.name, this.transform, this.getMessage, createParent);
+  };
+
   /**
    * Instantiate
    */
@@ -69,11 +76,13 @@ export class ErreurType<Data, Params extends readonly any[] = readonly [Data]> {
   };
 
   public readonly instantiate = (...params: Params): Erreur => {
-    return new Erreur(this.prepare(...params));
+    const prepared = this.prepare(...params);
+    return new Erreur(this.prepare(...params), this.createParent?.(prepared.data));
   };
 
   public readonly instantiateWithCause = (cause: Erreur, ...params: Params): Erreur => {
-    return new Erreur(this.prepareWithCause(cause, ...params));
+    const prepared = this.prepare(...params);
+    return new Erreur(this.prepareWithCause(cause, ...params), this.createParent?.(prepared.data));
   };
 
   /**
