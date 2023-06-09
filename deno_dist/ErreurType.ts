@@ -90,6 +90,6 @@ export class ErreurType<Data, Params extends readonly any[] = readonly [Data]> {
    */
 
   public readonly is = (error: unknown): error is Erreur => isErreur(error, this);
-  public readonly match = (error: Erreur) => match<Data>(error, this);
-  public readonly matchExec = <Result>(error: Erreur, fn: (data: Data) => Result) => matchExec(error, this, fn);
+  public readonly match = (error: unknown) => match<Data>(error, this);
+  public readonly matchExec = <Result>(error: unknown, fn: (data: Data) => Result) => matchExec(error, this, fn);
 }

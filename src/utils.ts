@@ -97,7 +97,10 @@ export function isOneOfObj(error: unknown, types: ObjTypessBase): error is Erreu
 /**
  * If the error contains the given type, return the data associated with it
  */
-export function match<Data>(error: Erreur, type: ErreurType<Data, any>): Data | undefined {
+export function match<Data>(error: unknown, type: ErreurType<Data, any>): Data | undefined {
+  if (!isErreur(error)) {
+    return undefined;
+  }
   for (const [t, data] of getEntries(error)) {
     if (type === t) {
       return data;
@@ -110,10 +113,13 @@ export function match<Data>(error: Erreur, type: ErreurType<Data, any>): Data | 
  * Same as match but will execute the given function if the error contains the given type
  */
 export function matchExec<Data, Result>(
-  error: Erreur,
+  error: unknown,
   type: ErreurType<Data, any>,
   exec: (data: Data) => Result
 ): Result | undefined {
+  if (!isErreur(error)) {
+    return undefined;
+  }
   for (const [t, data] of getEntries(error)) {
     if (type === t) {
       return exec(data);
