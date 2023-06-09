@@ -27,15 +27,12 @@ export class ErreurType<Data, Params extends readonly any[] = readonly [Data]> {
     this[INTERNAL] = key ?? Symbol(`[Erreur]: ${name}`);
   }
 
-  /**
-   * If the data is an object with a message property, it will be used as the error message
-   * Otherwise, the error message will be the name of the error and the data as a JSON string
-   */
   static readonly DEFAULT_MESSAGE = DEFAULT_MESSAGE;
 
   /**
    * Create
    */
+
   static readonly create = createType;
   static readonly createEmpty = createEmptyType;
   static readonly createMany = createManyTypes;
