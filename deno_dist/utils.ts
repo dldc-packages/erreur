@@ -167,6 +167,6 @@ export function getEntries(erreur: Erreur): IterableIterator<ErreurTypeTuple<any
   };
 }
 
-function isSameType(left: ErreurTypeAny, right: ErreurTypeAny): boolean {
+export function isSameType(left: ErreurTypeAny, right: ErreurTypeAny): boolean {
   return left[INTERNAL] === right[INTERNAL];
 }

@@ -1,6 +1,18 @@
 import { INTERNAL, PARENT } from './constants.ts';
 import { ErreurType, ErreurTypeAny } from './ErreurType.ts';
-import { isErreur, match } from './utils.ts';
+import {
+  getEntries,
+  isErreur,
+  isOneOf,
+  isOneOfObj,
+  match,
+  matchExec,
+  matchObj,
+  resolve,
+  resolveAsync,
+  wrap,
+  wrapAsync,
+} from './utils.ts';
 
 export interface ErreurConstructorOptions<Data> {
   readonly type: ErreurType<Data, any>;
@@ -39,4 +51,21 @@ export class Erreur extends Error {
 
   public readonly is = (type: ErreurTypeAny) => isErreur(this, type);
   public readonly match = <Data>(type: ErreurType<Data, any>) => match<Data>(this, type);
+  public readonly matchExec = <Data, Result>(type: ErreurType<Data>, fn: (data: Data) => Result) =>
+    matchExec<Data, Result>(this, type, fn);
+
+  /**
+   * Static utils
+   */
+  static is = isErreur;
+  static match = match;
+  static matchExec = matchExec;
+  static matchObj = matchObj;
+  static isOneOf = isOneOf;
+  static isOneOfObj = isOneOfObj;
+  static resolve = resolve;
+  static getEntries = getEntries;
+  static resolveAsync = resolveAsync;
+  static wrap = wrap;
+  static wrapAsync = wrapAsync;
 }

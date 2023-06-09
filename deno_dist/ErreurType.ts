@@ -8,7 +8,7 @@ import {
   DEFAULT_MESSAGE,
 } from './create.ts';
 import { Erreur, ErreurConstructorOptions } from './Erreur.ts';
-import { isErreur, match } from './utils.ts';
+import { isErreur, match, matchExec } from './utils.ts';
 
 export type ErreurTypeAny = ErreurType<any, any>;
 
@@ -91,4 +91,5 @@ export class ErreurType<Data, Params extends readonly any[] = readonly [Data]> {
 
   public readonly is = (error: unknown): error is Erreur => isErreur(error, this);
   public readonly match = (error: Erreur) => match<Data>(error, this);
+  public readonly matchExec = <Result>(error: Erreur, fn: (data: Data) => Result) => matchExec(error, this, fn);
 }

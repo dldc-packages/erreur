@@ -1,4 +1,4 @@
 export * from './Erreur.ts';
 export * from './ErreurType.ts';
-export * from './create.ts';
-export * from './utils.ts';
+export type { CreatorsBase, ErreursFromCreators } from './create.ts';
+export type { DataFromTypes, ErreurTypeTuple, ObjTypesBase, ObjTypessBase, OnError } from './utils.ts';
