@@ -1,3 +1,4 @@
+import { expect, test, describe, vi } from 'vitest';
 import { DataFromTypes, Erreur } from '../src/mod';
 
 test('Declare Erreur', () => {
@@ -191,7 +192,7 @@ describe('ErreurDeclaration methods', () => {
   });
 
   test('Declaration.matchExec', () => {
-    const fn = jest.fn();
+    const fn = vi.fn();
     const MyErreur = Erreur.declare<{ num: number }>('MyErreur');
     const err = MyErreur.create({ num: 42 });
     MyErreur.matchExec(err, fn);

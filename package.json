@@ -21,7 +21,8 @@
   "exports": {
     ".": {
       "import": "./dist/mod.mjs",
-      "require": "./dist/mod.js"
+      "require": "./dist/mod.js",
+      "types": "./dist/mod.d.ts"
     }
   },
   "main": "./dist/mod.js",
@@ -35,26 +36,24 @@
     "lint": "prettier . --check && eslint . && tsc --noEmit",
     "lint:fix": "prettier . --write . && eslint . --fix",
     "release": "yarn build && np",
-    "test": "yarn lint && jest --coverage",
-    "test:run": "jest",
-    "test:watch": "jest --watch",
+    "test": "yarn lint && vitest run --coverage",
+    "test:run": "vitest run",
+    "test:watch": "vitest --watch",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@types/jest": "^27.5.0",
     "@typescript-eslint/eslint-plugin": "^5.23.0",
     "@typescript-eslint/parser": "^5.23.0",
     "denoify": "^0.11.0",
     "eslint": "^8.15.0",
     "eslint-config-prettier": "^8.3.0",
-    "jest": "^28.1.0",
     "np": "^7.6.1",
     "prettier": "^2.6.2",
     "rimraf": "^3.0.2",
-    "ts-jest": "^28.0.2",
     "tslib": "^2.4.0",
     "tsup": "^5.12.7",
-    "typescript": "^4.6.4"
+    "typescript": "^4.6.4",
+    "vitest": "^0.32.0"
   },
   "publishConfig": {
     "access": "public",
