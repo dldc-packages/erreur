@@ -1,8 +1,8 @@
 {
-  // see https://www.typescriptlang.org/tsconfig to better understand tsconfigs
   "include": ["src", "types"],
   "exclude": ["deno_dist/"],
   "compilerOptions": {
+    "target": "ESNext",
     "module": "esnext",
     "lib": ["dom", "esnext"],
     "outDir": "dist/",

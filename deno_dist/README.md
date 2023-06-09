@@ -38,7 +38,7 @@ const MyError = Erreur.declare<{ message: string }>('MyError');
 
 #### Transforms
 
-The `withTransform` method of an `ErreurDeclaration` allows you to create a clone of the declaration that take custom parameters and transform them into the data of the error. Note that the original declaration is not modified and both declarations can be used to create errors (they are the same "key").
+The `withTransform` method of an `ErreurType` allows you to create a clone of the declaration that take custom parameters and transform them into the data of the error. Note that the original declaration is not modified and both declarations can be used to create errors (they are the same "key").
 
 ```ts
 const MyError = Erreur.declare<{ message: string }>('MyError');
@@ -71,7 +71,7 @@ You can override this behavior by passing a custom message as the second paramet
 const MyError = Erreur.declare<{ count: number }>('MyError', (data) => `Count is ${data.count}`);
 ```
 
-You can also use the `withMessage` method of an `ErreurDeclaration` to create a clone of the declaration with a custom message.
+You can also use the `withMessage` method of an `ErreurType` to create a clone of the declaration with a custom message.
 
 ```ts
 const MyError = Erreur.declare<{ count: number }>('MyError');
@@ -108,7 +108,7 @@ const { NumError, FatalError } = Erreur.declareManyFromTypes<MyErrors>()({
 
 The `Erreur.is` static method can be used to check if an value is an `Erreur`.
 
-You can also pass a `ErreurDeclaration` as second parameter to check if the `Erreur` contains the declaration data.
+You can also pass a `ErreurType` as second parameter to check if the `Erreur` contains the declaration data.
 
 ```ts
 const NumErreur = Erreur.declare<number>('NumErreur');

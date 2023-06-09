@@ -1,25 +1,19 @@
-import { expect, test, describe, vi } from 'vitest';
-import { DataFromTypes, Erreur } from '../src/mod';
+import { describe, expect, test, vi } from 'vitest';
+import { DataFromTypes, Erreur, ErreurType, matchExec, matchObj, wrap } from '../src/mod';
 
-test('Declare Erreur', () => {
-  const MyErreur = Erreur.declare<{ num: number }>('MyErreur');
-
-  const err = MyErreur.create({ num: 42 });
-
+test('Basic erreur', () => {
+  const MyErreur = ErreurType.create<{ num: number }>('MyErreur');
+  const err = MyErreur.instantiate({ num: 42 });
   expect(err.message).toBe('[Erreur]: MyErreur {"num":42}');
 });
 
-test('Declare Erreur.withTransform', () => {
-  const MyErreur = Erreur.declare<{ num: number }>('MyErreur').withTransform((num: number) => ({
-    num,
-  }));
-
-  const err = MyErreur.create(42);
-
+test('Create withTransform', () => {
+  const MyErreur = ErreurType.create<{ num: number }>('MyErreur').withTransform((num: number) => ({ num }));
+  const err = MyErreur.instantiate(42);
   expect(err.message).toBe('[Erreur]: MyErreur {"num":42}');
 });
 
-test('Erreur.declareFromTypes', () => {
+test('createFromTypes', () => {
   interface IErreurs {
     MyErreur: { num: number };
     MyOtherErreur: { str: string };
@@ -29,54 +23,54 @@ test('Erreur.declareFromTypes', () => {
   const err: IErreur = { kind: 'MyErreur', data: { num: 42 } };
   expect(err).toBeDefined();
 
-  const Erreurs = Erreur.declareManyFromTypes<IErreurs>()({
+  const Erreurs = ErreurType.createManyFromData<IErreurs>()({
     MyErreur: (num: number) => ({ num }),
     MyOtherErreur: (str: string) => ({ str }),
   });
 
-  const err1 = Erreurs.MyErreur.create(42);
-  const err2 = Erreurs.MyOtherErreur.create('hello');
+  const err1 = Erreurs.MyErreur.instantiate(42);
+  const err2 = Erreurs.MyOtherErreur.instantiate('hello');
 
   expect(err1).toBeInstanceOf(Erreur);
   expect(err2).toBeInstanceOf(Erreur);
 });
 
-test('Erreur.declareMany', () => {
-  const Erreurs = Erreur.declareMany({
+test('Erreur.createMany', () => {
+  const Erreurs = ErreurType.createMany({
     MyErreur: (num: number) => ({ num }),
     MyOtherErreur: (str: string) => ({ str }),
   });
 
-  Erreurs.MyErreur.create(42);
+  Erreurs.MyErreur.instantiate(42);
 });
 
-test('Create Erreur.declareWithTransform', () => {
-  const MyErreur = Erreur.declareWithTransform('MyErreur', (num: number) => ({
+test('Create Erreur.createWithTransform', () => {
+  const MyErreur = ErreurType.createWithTransform('MyErreur', (num: number) => ({
     num,
   }));
 
-  const err = MyErreur.create(42);
+  const err = MyErreur.instantiate(42);
 
   expect(err.message).toBe('[Erreur]: MyErreur {"num":42}');
 });
 
 test('Basic usage', () => {
-  const StuffGoneWrongErreur = Erreur.declare<{ count: number }>('StuffGoneWrong');
+  const StuffGoneWrongErreur = ErreurType.create<{ count: number }>('StuffGoneWrong');
 
-  const err = StuffGoneWrongErreur.create({ count: 42 });
+  const err = StuffGoneWrongErreur.instantiate({ count: 42 });
 
   expect(err).toBeInstanceOf(Erreur);
-  expect(err.is(StuffGoneWrongErreur)).toBe(true);
+  expect(StuffGoneWrongErreur.is(err)).toBe(true);
 });
 
 describe('Wrap', () => {
-  const InvalidNumberErreur = Erreur.declare<{ num: number }>('InvalidNumber');
-  const Unknown = Erreur.declare<{ error: unknown }>('Unknown');
+  const InvalidNumberErreur = ErreurType.create<{ num: number }>('InvalidNumber');
+  const Unknown = ErreurType.create<{ error: unknown }>('Unknown');
 
   test('Return result when no error', () => {
-    const result = Erreur.wrap(
+    const result = wrap(
       () => 42,
-      (error) => Unknown.create({ error })
+      (error) => Unknown.instantiate({ error })
     );
 
     expect(result).toBe(42);
@@ -84,11 +78,11 @@ describe('Wrap', () => {
 
   test('throw error when error is MyError', () => {
     const run = () =>
-      Erreur.wrap(
+      wrap(
         () => {
-          throw InvalidNumberErreur.create({ num: -4 });
+          throw InvalidNumberErreur.instantiate({ num: -4 });
         },
-        (error) => Unknown.create({ error })
+        (error) => Unknown.instantiate({ error })
       );
 
     expect(run).toThrowError();
@@ -97,15 +91,15 @@ describe('Wrap', () => {
 
 describe('Cause', () => {
   test('Cause is undefined by default', () => {
-    const MyErreur = Erreur.declare<{ num: number }>('MyErreur');
-    const err = MyErreur.create({ num: 42 });
+    const MyErreur = ErreurType.create<{ num: number }>('MyErreur');
+    const err = MyErreur.instantiate({ num: 42 });
     expect(err.cause).toBeUndefined();
   });
 
   test('createWithCause', () => {
-    const MyErreur = Erreur.declare<{ num: number }>('MyErreur');
-    const cause = MyErreur.create({ num: 0 });
-    const err = MyErreur.createWithCause(cause, { num: 42 });
+    const MyErreur = ErreurType.create<{ num: number }>('MyErreur');
+    const cause = MyErreur.instantiate({ num: 0 });
+    const err = MyErreur.instantiateWithCause(cause, { num: 42 });
     expect(err.cause).toBe(cause);
     expect(err.erreurCause).toBe(cause);
   });
@@ -113,29 +107,29 @@ describe('Cause', () => {
 
 describe('Match', () => {
   test('matchObj', () => {
-    const Erreurs = Erreur.declareMany({
+    const Erreurs = ErreurType.createMany({
       ErrA: (num: number) => ({ num }),
       ErrB: (str: string) => ({ str }),
       ErrC: (bool: boolean) => ({ bool }),
     });
 
-    const err = Erreurs.ErrA.create(42);
+    const err = Erreurs.ErrA.instantiate(42);
 
-    const res = Erreur.matchObj(err, Erreurs);
+    const res = matchObj(err, Erreurs);
 
     expect(res?.kind).toBe('ErrA');
   });
 
   test('macthExec', () => {
-    const Erreurs = Erreur.declareMany({
+    const Erreurs = ErreurType.createMany({
       ErrA: (num: number) => ({ num }),
       ErrB: (str: string) => ({ str }),
       ErrC: (bool: boolean) => ({ bool }),
     });
 
-    const err = Erreurs.ErrA.create(42);
+    const err = Erreurs.ErrA.instantiate(42);
 
-    const res = Erreur.matchExec(err, Erreurs.ErrA, (err) => err.num);
+    const res = matchExec(err, Erreurs.ErrA, (err) => err.num);
 
     expect(res).toBe(42);
   });
@@ -143,59 +137,75 @@ describe('Match', () => {
 
 describe('Message', () => {
   test('default message is name and data as JSON', () => {
-    const MyErreur = Erreur.declare<{ num: number }>('MyErreur');
-    const err = MyErreur.create({ num: 42 });
+    const MyErreur = ErreurType.create<{ num: number }>('MyErreur');
+    const err = MyErreur.instantiate({ num: 42 });
     expect(err.message).toBe('[Erreur]: MyErreur {"num":42}');
   });
 
   test('message can be overriden', () => {
-    const MyErreur = Erreur.declare<{ num: number }>('MyErreur', `MyErreur custom message`);
-    const err = MyErreur.create({ num: 42 });
+    const MyErreur = ErreurType.create<{ num: number }>('MyErreur', `MyErreur custom message`);
+    const err = MyErreur.instantiate({ num: 42 });
     expect(err.message).toBe('[Erreur]: MyErreur custom message');
   });
 
-  test('message can be overriden with a function to use data and declaration', () => {
-    const MyErreur = Erreur.declare<{ num: number }>('MyErreur', (data, declaration) => {
-      return `${declaration.name} -> ${data.num}`;
+  test('message can be overriden with a function to use data and type', () => {
+    const MyErreur = ErreurType.create<{ num: number }>('MyErreur', (data, name) => {
+      return `${name} -> ${data.num}`;
     });
-    const err = MyErreur.create({ num: 42 });
+    const err = MyErreur.instantiate({ num: 42 });
     expect(err.message).toBe('[Erreur]: MyErreur -> 42');
   });
 
   test('Override message using withMessage', () => {
-    const MyErreur = Erreur.declare<{ num: number }>('MyErreur');
+    const MyErreur = ErreurType.create<{ num: number }>('MyErreur');
     const MyErreurWithMessage = MyErreur.withMessage(`MyErreur custom message`);
-    const err1 = MyErreur.create({ num: 42 });
-    const err2 = MyErreurWithMessage.create({ num: 42 });
+    const err1 = MyErreur.instantiate({ num: 42 });
+    const err2 = MyErreurWithMessage.instantiate({ num: 42 });
 
     expect(err1.message).toBe('[Erreur]: MyErreur {"num":42}');
     expect(err2.message).toBe('[Erreur]: MyErreur custom message');
 
-    expect(err1.is(MyErreur)).toBe(true);
-    expect(err1.is(MyErreurWithMessage)).toBe(true);
-    expect(err2.is(MyErreur)).toBe(true);
-    expect(err2.is(MyErreurWithMessage)).toBe(true);
+    expect(MyErreur.is(err1)).toBe(true);
+    expect(MyErreurWithMessage.is(err1)).toBe(true);
+    expect(MyErreur.is(err2)).toBe(true);
+    expect(MyErreurWithMessage.is(err2)).toBe(true);
   });
 });
 
-describe('ErreurDeclaration methods', () => {
-  test('Declaration.is', () => {
-    const MyErreur = Erreur.declare<{ num: number }>('MyErreur');
-    const err = MyErreur.create({ num: 42 });
+describe('ErreurType methods', () => {
+  test('ErreurType.is', () => {
+    const MyErreur = ErreurType.create<{ num: number }>('MyErreur');
+    const err = MyErreur.instantiate({ num: 42 });
     expect(MyErreur.is(err)).toBe(true);
   });
 
-  test('Declaration.match', () => {
-    const MyErreur = Erreur.declare<{ num: number }>('MyErreur');
-    const err = MyErreur.create({ num: 42 });
+  test('ErreurType.match', () => {
+    const MyErreur = ErreurType.create<{ num: number }>('MyErreur');
+    const err = MyErreur.instantiate({ num: 42 });
     expect(MyErreur.match(err)).toEqual({ num: 42 });
   });
 
-  test('Declaration.matchExec', () => {
+  test('ErreurType.matchExec', () => {
     const fn = vi.fn();
-    const MyErreur = Erreur.declare<{ num: number }>('MyErreur');
-    const err = MyErreur.create({ num: 42 });
-    MyErreur.matchExec(err, fn);
+    const MyErreur = ErreurType.create<{ num: number }>('MyErreur');
+    const err = MyErreur.instantiate({ num: 42 });
+    matchExec(err, MyErreur, fn);
     expect(fn).toBeCalledWith({ num: 42 });
+  });
+});
+
+describe('Extends', () => {
+  test('Manually extends instance', () => {
+    const ErrA = ErreurType.create<{ num: number }>('ErrA');
+    const ErrB = ErreurType.create<{ str: string }>('ErrB');
+
+    const err = ErrA.instantiate({ num: 42 });
+    const err2 = err.extends(ErrB.prepare({ str: 'hey' }));
+
+    expect(err2.is(ErrA)).toBe(true);
+    expect(err2.is(ErrB)).toBe(true);
+
+    expect(err2.match(ErrA)).toEqual({ num: 42 });
+    expect(err2.match(ErrB)).toEqual({ str: 'hey' });
   });
 });
