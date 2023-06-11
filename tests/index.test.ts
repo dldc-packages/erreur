@@ -140,6 +140,7 @@ describe('Match', () => {
     expect(res).toBe(42);
 
     const res2 = Erreurs.ErrA.matchExec(err, (err) => err.num);
+    expect(res2).toBe(42);
   });
 });
 
