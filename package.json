@@ -81,6 +81,6 @@
     }
   },
   "dependencies": {
-    "staack": "^2.0.0"
+    "staack": "^2.0.1"
   }
 }
