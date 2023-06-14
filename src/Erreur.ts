@@ -1,70 +1,58 @@
-import { INTERNAL, PARENT } from './constants';
-import { ErreurType, ErreurTypeAny } from './ErreurType';
-import {
-  getEntries,
-  isErreur,
-  isOneOf,
-  isOneOfObj,
-  match,
-  matchExec,
-  matchObj,
-  resolve,
-  resolveAsync,
-  wrap,
-  wrapAsync,
-} from './utils';
+import { KeyConsumer, KeyProvider, StaackCore, StaackCoreValue } from 'staack';
+import { GetMessage, GetMessageKey, MessageKey } from './keys';
+import { fixStack, isErreur, resolve, resolveAsync, wrap, wrapAsync } from './utils';
 
-export interface ErreurConstructorOptions<Data> {
-  readonly type: ErreurType<Data, any>;
-  readonly data: Data;
-  readonly message: string;
-  readonly erreurCause?: Erreur;
-}
-
-/**
- * The is the Erreur class. It is the base class for all Erreur instances.
- */
 export class Erreur extends Error {
-  public readonly [INTERNAL]: ErreurConstructorOptions<any>;
-  public readonly [PARENT]: Erreur | null;
+  public readonly context: StaackCoreValue;
 
-  public readonly erreurCause?: Erreur;
-  public cause?: Error | undefined;
+  private constructor(context: StaackCoreValue = null) {
+    super(`[Erreur]`);
+    this.context = context;
+    // dynamic message
+    Object.defineProperty(this, 'message', {
+      get: () => this.getMessage() ?? '[Erreur]',
+    });
 
-  constructor(options: ErreurConstructorOptions<any>, parent: Erreur | null = null) {
-    super(`[Erreur]: ${options.message}`);
-    this[PARENT] = parent;
-    this[INTERNAL] = options;
-    this.erreurCause = options.erreurCause;
-    this.cause = options.erreurCause;
     // restore prototype chain
     Object.setPrototypeOf(this, new.target.prototype);
+    // try to remove contructor from stack trace
+    fixStack(this);
   }
 
-  extends<Data>(options: ErreurConstructorOptions<Data>): Erreur {
-    return new Erreur(options, this);
+  static create(message?: string): Erreur {
+    return new Erreur(message ? StaackCore.with(null, MessageKey.Provider(message)) : null);
   }
 
-  /**
-   * Binded utils
-   */
+  private getMessage(): string | null {
+    return this.getOrFail(GetMessageKey.Consumer)(this);
+  }
 
-  public readonly is = (type: ErreurTypeAny) => isErreur(this, type);
-  public readonly match = <Data>(type: ErreurType<Data, any>) => match<Data>(this, type);
-  public readonly matchExec = <Data, Result>(type: ErreurType<Data>, fn: (data: Data) => Result) =>
-    matchExec<Data, Result>(this, type, fn);
+  has(consumer: KeyConsumer<any, any>): boolean {
+    return StaackCore.has(this.context, consumer);
+  }
 
-  /**
-   * Static utils
-   */
+  get<T, HasDefault extends boolean>(consumer: KeyConsumer<T, HasDefault>): HasDefault extends true ? T : T | null {
+    return StaackCore.get(this.context, consumer);
+  }
+
+  getOrFail<T>(consumer: KeyConsumer<T>): T {
+    return StaackCore.getOrFail(this.context, consumer);
+  }
+
+  with(...keys: Array<KeyProvider<any>>): Erreur {
+    return new Erreur(StaackCore.with(this.context, ...keys));
+  }
+
+  withMessage(message: string): Erreur {
+    return this.with(MessageKey.Provider(message));
+  }
+
+  withGetMessage(getMessage: GetMessage): Erreur {
+    return this.with(GetMessageKey.Provider(getMessage));
+  }
+
   static is = isErreur;
-  static match = match;
-  static matchExec = matchExec;
-  static matchObj = matchObj;
-  static isOneOf = isOneOf;
-  static isOneOfObj = isOneOfObj;
   static resolve = resolve;
-  static getEntries = getEntries;
   static resolveAsync = resolveAsync;
   static wrap = wrap;
   static wrapAsync = wrapAsync;

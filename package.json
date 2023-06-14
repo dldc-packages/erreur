@@ -79,5 +79,8 @@
       "web": true,
       "autoGenerate": true
     }
+  },
+  "dependencies": {
+    "staack": "^2.0.0"
   }
 }
