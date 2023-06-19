@@ -3,7 +3,7 @@ import type { Erreur } from './Erreur';
 
 export const MessageKey = createKey<string>({ name: 'Message' });
 
-export type GetMessage = (self: Erreur) => string | null;
+export type GetMessage = (self: Erreur) => string;
 
 export const DEFAULT_GET_MESSAGE: GetMessage = (context) => {
   return context.get(MessageKey.Consumer) ?? '[Erreur]';

@@ -44,3 +44,23 @@ test('HttpError with dynamic message', () => {
 
   expect(`${NotFoundErreur}`).toEqual('Error: Something went wrong: 404');
 });
+
+test('Erreur.stack', () => {
+  const error = Erreur.create();
+  const lines = error.stack!.split('\n');
+  expect(lines[0]).toEqual('Error: [Erreur]');
+  expect(lines[1]).toMatch('erreur/tests/index.test.ts');
+});
+
+test('Create with message', () => {
+  const err = Erreur.create('Something went wrong');
+  expect(err.message).toBe('Something went wrong');
+});
+
+test('With message', () => {
+  const err = Erreur.create().withMessage('Something went wrong');
+  expect(err.message).toBe('Something went wrong');
+
+  const err2 = Erreur.create('Something went wrong').withMessage('Something went wrong 2');
+  expect(err2.message).toBe('Something went wrong 2');
+});

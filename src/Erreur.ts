@@ -10,21 +10,21 @@ export class Erreur extends Error {
     this.context = context;
     // dynamic message
     Object.defineProperty(this, 'message', {
-      get: () => this.getMessage() ?? '[Erreur]',
+      get: () => this.getMessage(),
     });
 
     // restore prototype chain
     Object.setPrototypeOf(this, new.target.prototype);
     // try to remove contructor from stack trace
-    fixStack(this);
+    fixStack(this, Erreur.create);
   }
 
   static create(message?: string): Erreur {
     return new Erreur(message ? StaackCore.with(null, MessageKey.Provider(message)) : null);
   }
 
-  private getMessage(): string | null {
-    return this.getOrFail(GetMessageKey.Consumer)(this);
+  private getMessage(): string {
+    return this.get(GetMessageKey.Consumer)(this);
   }
 
   has(consumer: KeyConsumer<any, any>): boolean {
