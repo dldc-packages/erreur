@@ -1,2 +1,2 @@
 export * from './Erreur';
-export * from './keys';
+export * from './ErreurType';
