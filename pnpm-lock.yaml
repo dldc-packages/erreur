@@ -6,8 +6,8 @@ settings:
 
 dependencies:
   staack:
-    specifier: ^2.0.1
-    version: 2.0.1
+    specifier: ^2.0.2
+    version: 2.0.2
 
 devDependencies:
   '@types/node':
@@ -3574,8 +3574,8 @@ packages:
       whatwg-url: 7.1.0
     dev: true
 
-  /staack@2.0.1:
-    resolution: {integrity: sha512-PxlXU079q0zinhij8mNmIl5DWUeVV01CCHXfGVPFZbAktXCPuRwPRKxYC6rlFdTnpGENvS4FOHzQDpnTD+LVag==}
+  /staack@2.0.2:
+    resolution: {integrity: sha512-lfYKLBSDai3i9Tf0/2PIElSER0lxzHV7niWvRbe1Os7F/cVv/Ccxyn//m2VB+4PRghDZKCDLRYNsG8GKVWtdCw==}
     dependencies:
       '@vitest/coverage-v8': 0.32.0(vitest@0.32.0)
       vitest: 0.32.0
