@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { Erreur, createErreurType } from '../src/mod';
+import { Erreur, ErreurType } from '../src/mod';
 
 test('Get message', () => {
   const err = Erreur.create();
@@ -8,7 +8,7 @@ test('Get message', () => {
 });
 
 test('Add data to Erreur', () => {
-  const ErrType = createErreurType<number>({ name: 'Key' });
+  const ErrType = ErreurType.define<number>('Key');
   const err = ErrType.create(42);
   expect(err).toBeInstanceOf(Erreur);
   expect(err.get(ErrType.Consumer)).toBe(42);
@@ -18,7 +18,7 @@ test('Add data to Erreur', () => {
 
 test('Gist', () => {
   // Create a new type
-  const HttpErrorType = createErreurType<number>({ name: 'StatusCode' });
+  const HttpErrorType = ErreurType.define<number>('StatusCode');
 
   // Create a new Erreur
   const err = Erreur.create('Something went wrong');
@@ -30,6 +30,20 @@ test('Gist', () => {
   const statusCode = errWithStatusCode.get(HttpErrorType.Consumer);
 
   expect(statusCode).toBe(500);
+});
+
+test('HttpError with transforms', () => {
+  const HttpErrorType = ErreurType.define<{ status: number }>('HttpError', (err, value) => {
+    return err.withMessage(`[HttpError] ${value.status}`);
+  });
+
+  const NotFoundErrorType = ErreurType.defineEmpty('NotFound', (err) => {
+    return HttpErrorType.extends(err, { status: 404 });
+  });
+
+  const err = NotFoundErrorType.create();
+  expect(err.message).toBe('[HttpError] 404');
+  expect(err.get(HttpErrorType.Consumer)).toEqual({ status: 404 });
 });
 
 test('Erreur.stack', () => {
@@ -91,4 +105,25 @@ test('Erreur.resolve', () => {
 
   expect(err).toBeInstanceOf(Erreur);
   expect(err.message).toBe('Something went wrong');
+
+  const err2 = Erreur.resolve(() => {
+    throw err;
+  });
+
+  expect(err2).toBeInstanceOf(Erreur);
+  expect(err2).toBe(err);
+});
+
+test('Erreur.from', () => {
+  const err = Erreur.create();
+
+  expect(Erreur.fromUnknown(err)).toBe(err);
+
+  const strErr = Erreur.fromUnknown('Some text');
+  expect(strErr).toBeInstanceOf(Erreur);
+  expect(strErr.message).toBe('Some text');
+
+  const anyErr = Erreur.fromUnknown(42);
+  expect(anyErr).toBeInstanceOf(Erreur);
+  expect(anyErr.message).toBe('42');
 });

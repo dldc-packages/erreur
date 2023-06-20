@@ -43,7 +43,7 @@
     "typecheck:watch": "tsc --watch"
   },
   "dependencies": {
-    "staack": "^2.0.2"
+    "staack": "^3.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.3.1",

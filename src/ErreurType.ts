@@ -1,40 +1,58 @@
-import { createKey, Key, KeyConsumer, KeyProvider, KeyProviderFn } from 'staack';
+import { IKey, Key, KeyConsumer, KeyProvider, KeyProviderFn } from 'staack';
 import { Erreur } from './Erreur';
 
-export interface ErreurType<T, HasDefault extends boolean = boolean> {
+export const MessageKey = Key.createWithDefault<string>('Message', '[Erreur]');
+export const StackTraceKey = Key.create<string>('StackTrace');
+
+export { IKey, KeyConsumer, KeyProvider, KeyProviderFn };
+
+export interface IErreurType<T, HasDefault extends boolean = boolean> {
   readonly Consumer: KeyConsumer<T, HasDefault>;
   readonly Provider: KeyProviderFn<T, HasDefault>;
-  readonly create: (value: T) => Erreur;
-  readonly extends: (erreur: Erreur | null, value: T) => Erreur;
+  readonly create: (...args: undefined extends T ? [] : [value: T]) => Erreur;
+  readonly extends: (erreur: Erreur | null, ...args: undefined extends T ? [] : [value: T]) => Erreur;
 }
 
-export const MessageKey = createKey<string>({ name: 'Message', defaultValue: '[Erreur]' });
-export const StackKey = createKey<string>({ name: 'Stack' });
+export type Transform<T> = (current: Erreur, value: T) => Erreur;
 
-export { createKey, Key, KeyConsumer, KeyProvider, KeyProviderFn };
-
-export function createErreurType<T>(options: { name: string; help?: string; defaultValue: T }): ErreurType<T, true>;
-export function createErreurType<T>(options: { name: string; help?: string }): ErreurType<T, false>;
-export function createErreurType<T>(options: {
-  name: string;
-  help?: string;
-  defaultValue?: T;
-}): ErreurType<T, boolean> {
-  const Key = createKey({ name: options.name, defaultValue: options.defaultValue }) as Key<T, boolean>;
-
+export const ErreurType = (() => {
   return {
-    Consumer: Key.Consumer,
-    Provider: Key.Provider,
-    create,
-    extends: extendsErreur,
+    define,
+    defineWithDefault,
+    defineEmpty,
   };
 
-  function create(value: T): Erreur {
-    return extendsErreur(null, value);
+  function define<T>(name: string, transform?: Transform<T>): IErreurType<T, false> {
+    return defineInternal(Key.create<T>(name), transform);
   }
 
-  function extendsErreur(erreur: Erreur | null, value: T): Erreur {
-    const parent = erreur || Erreur.create();
-    return parent.with(Key.Provider(value));
+  function defineWithDefault<T>(name: string, defaultValue: T, transform?: Transform<T>): IErreurType<T, true> {
+    return defineInternal(Key.createWithDefault<T>(name, defaultValue), transform);
   }
-}
+
+  function defineEmpty(name: string, transform?: Transform<undefined>): IErreurType<undefined, false> {
+    return defineInternal(Key.createEmpty(name), transform);
+  }
+
+  function defineInternal<T, HasDefault extends boolean>(
+    key: IKey<T, HasDefault>,
+    transform: Transform<T> | undefined
+  ): IErreurType<T, HasDefault> {
+    return {
+      Consumer: key.Consumer,
+      Provider: key.Provider,
+      create,
+      extends: extendsErreur,
+    };
+
+    function create(...args: undefined extends T ? [] : [value: T]): Erreur {
+      return extendsErreur(null, ...args);
+    }
+
+    function extendsErreur(erreur: Erreur | null, ...args: undefined extends T ? [] : [value: T]): Erreur {
+      const parent = erreur || Erreur.create();
+      const transformed = transform ? transform(parent, args[0] as T) : parent;
+      return transformed.with(key.Provider(...args));
+    }
+  }
+})();

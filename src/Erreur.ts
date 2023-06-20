@@ -1,12 +1,12 @@
 import { KeyConsumer, KeyProvider, StaackCore, StaackCoreValue } from 'staack';
-import { MessageKey, StackKey } from './ErreurType';
+import { MessageKey, StackTraceKey } from './ErreurType';
 import { fixStack, isErreur, resolve, resolveAsync, wrap, wrapAsync } from './utils';
 
 export class Erreur extends Error {
   static create(message?: string): Erreur {
     const err = new Error('[Erreur]');
     const stack = fixStack(err, Erreur.create);
-    let context = StaackCore.with(null, StackKey.Provider(stack));
+    let context = StaackCore.with(null, StackTraceKey.Provider(stack));
     if (message) {
       context = StaackCore.with(context, MessageKey.Provider(message));
     }
@@ -14,6 +14,9 @@ export class Erreur extends Error {
   }
 
   static fromError(error: Error): Erreur {
+    if (isErreur(error)) {
+      return error;
+    }
     return Erreur.create(error.message);
   }
 
@@ -24,9 +27,6 @@ export class Erreur extends Error {
    * Otherwise, the value will be converted to a string and used as the message.
    */
   static fromUnknown(error: unknown): Erreur {
-    if (isErreur(error)) {
-      return error;
-    }
     if (error instanceof Error) {
       return Erreur.fromError(error);
     }
@@ -62,7 +62,7 @@ export class Erreur extends Error {
   }
 
   private getStack(): string | undefined {
-    return this.get(StackKey.Consumer) ?? undefined;
+    return this.get(StackTraceKey.Consumer) ?? undefined;
   }
 
   has(consumer: KeyConsumer<any, any>): boolean {
