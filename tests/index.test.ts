@@ -17,17 +17,17 @@ test('Add data to Erreur', () => {
 });
 
 test('Gist', () => {
-  // Create a new key
-  const StatusCodeKey = createErreurType<number>({ name: 'StatusCode' });
+  // Create a new type
+  const HttpErrorType = createErreurType<number>({ name: 'StatusCode' });
 
   // Create a new Erreur
   const err = Erreur.create('Something went wrong');
 
   // Add data to the Erreur
-  const errWithStatusCode = StatusCodeKey.extends(err, 500);
+  const errWithStatusCode = HttpErrorType.extends(err, 500);
 
   // Get data from the Erreur
-  const statusCode = errWithStatusCode.get(StatusCodeKey.Consumer);
+  const statusCode = errWithStatusCode.get(HttpErrorType.Consumer);
 
   expect(statusCode).toBe(500);
 });

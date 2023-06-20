@@ -13,19 +13,21 @@ Internally, the `Erreur` class uses [`etienne-dldc/staack`](https://github.com/e
 Here is a simple example:
 
 ```ts
-import { createKey, Erreur } from 'erreur';
+import { createErreurType, Erreur } from 'erreur';
 
-// Create a new key
-const StatusCodeKey = createKey<number>({ name: 'StatusCode' });
+// Create a new type
+const HttpErrorType = createErreurType<number>({ name: 'StatusCode' });
 
 // Create a new Erreur
 const err = Erreur.create('Something went wrong');
 
 // Add data to the Erreur
-const errWithStatusCode = err.with(StatusCodeKey.Provider(500));
+const errWithStatusCode = HttpErrorType.extends(err, 500);
 
 // Get data from the Erreur
-const statusCode = errWithStatusCode.get(StatusCodeKey.Consumer);
+const statusCode = errWithStatusCode.get(HttpErrorType.Consumer);
+
+expect(statusCode).toBe(500);
 ```
 
 ## API
@@ -85,22 +87,6 @@ const err2 = err1.with(Erreur.MessageKey.Provider('Something went really wrong')
 const err3 = err2.withMessage('Something went really wrong');
 ```
 
-### Dynamic message
-
-For a more advanced usage, you can use the `Erreur.GetMessageKey` (or `erreur.withGetMessage`) key to provide a function that will be called when the message is accessed, this function will receive the `Erreur` instance as an argument:
-
-```ts
-const StatusCodeKey = createKey<number>({ name: 'StatusCode', defaultValue: 500 });
-
-const HttpErreur = Erreur.create().withGetMessage((err) => {
-  return `Something went wrong: ${err.get(StatusCodeKey.Consumer)}`;
-});
-
-const NotFoundErreur = HttpErreur.with(StatusCodeKey.Provider(404));
-
-console.log(NotFoundErreur.message); // Something went wrong: 404
-```
-
 ## Recipes
 
 ### Using Union types
@@ -113,5 +99,5 @@ type FetchError =
   | { type: 'ParseError'; content: string }
   | { type: 'ResponseNotOk'; response: any };
 
-const FetchErrorKey = createKey<FetchError>({ name: 'FetchError' });
+const FetchErrorType = createErrorType<FetchError>({ name: 'FetchError' });
 ```
