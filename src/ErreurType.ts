@@ -5,7 +5,7 @@ export interface ErreurType<T, HasDefault extends boolean = boolean> {
   readonly Consumer: KeyConsumer<T, HasDefault>;
   readonly Provider: KeyProviderFn<T, HasDefault>;
   readonly create: (value: T) => Erreur;
-  readonly extends: (erreur: Erreur, value: T) => Erreur;
+  readonly extends: (erreur: Erreur | null, value: T) => Erreur;
 }
 
 export const MessageKey = createKey<string>({ name: 'Message', defaultValue: '[Erreur]' });
