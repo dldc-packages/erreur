@@ -1,4 +1,4 @@
-import { IKey, Key, KeyConsumer, KeyProvider, KeyProviderFn } from 'staack';
+import { IKey, Key, KeyConsumer, KeyProvider, KeyProviderFn, MaybeParam } from 'staack';
 import { Erreur } from './Erreur';
 
 export const MessageKey = Key.createWithDefault<string>('Message', '[Erreur]');
@@ -9,8 +9,8 @@ export { IKey, KeyConsumer, KeyProvider, KeyProviderFn };
 export interface IErreurType<T, HasDefault extends boolean = boolean> {
   readonly Consumer: KeyConsumer<T, HasDefault>;
   readonly Provider: KeyProviderFn<T, HasDefault>;
-  readonly create: (...args: undefined extends T ? [] : [value: T]) => Erreur;
-  readonly extends: (erreur: Erreur | null, ...args: undefined extends T ? [] : [value: T]) => Erreur;
+  readonly create: (...args: MaybeParam<T>) => Erreur;
+  readonly extends: (erreur: Erreur | null, ...args: MaybeParam<T>) => Erreur;
 }
 
 export type Transform<T> = (current: Erreur, value: T) => Erreur;
@@ -45,11 +45,11 @@ export const ErreurType = (() => {
       extends: extendsErreur,
     };
 
-    function create(...args: undefined extends T ? [] : [value: T]): Erreur {
+    function create(...args: MaybeParam<T>): Erreur {
       return extendsErreur(null, ...args);
     }
 
-    function extendsErreur(erreur: Erreur | null, ...args: undefined extends T ? [] : [value: T]): Erreur {
+    function extendsErreur(erreur: Erreur | null, ...args: MaybeParam<T>): Erreur {
       const parent = erreur || Erreur.create();
       const transformed = transform ? transform(parent, args[0] as T) : parent;
       return transformed.with(key.Provider(...args));
