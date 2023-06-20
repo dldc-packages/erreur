@@ -1,6 +1,6 @@
 {
   "name": "erreur",
-  "version": "3.0.0-9",
+  "version": "3.0.0-10",
   "description": "Type safe custom errors",
   "keywords": [
     "error",
