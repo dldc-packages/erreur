@@ -13,10 +13,10 @@ Internally, the `Erreur` class uses [`etienne-dldc/staack`](https://github.com/e
 Here is a simple example:
 
 ```ts
-import { createErreurType, Erreur } from 'erreur';
+import { ErreurType, Erreur } from 'erreur';
 
 // Create a new type
-const HttpErrorType = createErreurType<number>({ name: 'StatusCode' });
+const HttpErrorType = ErreurType.define<number>('StatusCode');
 
 // Create a new Erreur
 const err = Erreur.create('Something went wrong');

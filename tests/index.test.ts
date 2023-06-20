@@ -1,21 +1,6 @@
 import { expect, test } from 'vitest';
 import { Erreur, ErreurType } from '../src/mod';
 
-test('Get message', () => {
-  const err = Erreur.create();
-  expect(err.message).toBe('[Erreur]');
-  expect(err.toString()).toBe('Error: [Erreur]');
-});
-
-test('Add data to Erreur', () => {
-  const ErrType = ErreurType.define<number>('Key');
-  const err = ErrType.create(42);
-  expect(err).toBeInstanceOf(Erreur);
-  expect(err.get(ErrType.Consumer)).toBe(42);
-
-  expect(err.has(ErrType.Consumer)).toBe(true);
-});
-
 test('Gist', () => {
   // Create a new type
   const HttpErrorType = ErreurType.define<number>('StatusCode');
@@ -30,6 +15,21 @@ test('Gist', () => {
   const statusCode = errWithStatusCode.get(HttpErrorType.Consumer);
 
   expect(statusCode).toBe(500);
+});
+
+test('Get message', () => {
+  const err = Erreur.create();
+  expect(err.message).toBe('[Erreur]');
+  expect(err.toString()).toBe('Error: [Erreur]');
+});
+
+test('Add data to Erreur', () => {
+  const ErrType = ErreurType.define<number>('Key');
+  const err = ErrType.create(42);
+  expect(err).toBeInstanceOf(Erreur);
+  expect(err.get(ErrType.Consumer)).toBe(42);
+
+  expect(err.has(ErrType.Consumer)).toBe(true);
 });
 
 test('HttpError with transforms', () => {
