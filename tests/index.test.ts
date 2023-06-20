@@ -30,21 +30,6 @@ test('Gist', () => {
   expect(statusCode).toBe(500);
 });
 
-test('HttpError with dynamic message', () => {
-  const StatusCodeKey = createKey<number>({ name: 'StatusCode', defaultValue: 500 });
-
-  const HttpErreur = Erreur.create().withGetMessage((err) => {
-    return `Something went wrong: ${err.get(StatusCodeKey.Consumer)}`;
-  });
-
-  const NotFoundErreur = HttpErreur.with(StatusCodeKey.Provider(404));
-
-  expect(NotFoundErreur.message).toBe('Something went wrong: 404');
-  expect(HttpErreur.message).toBe('Something went wrong: 500');
-
-  expect(`${NotFoundErreur}`).toEqual('Error: Something went wrong: 404');
-});
-
 test('Erreur.stack', () => {
   const error = Erreur.create();
   const lines = error.stack!.split('\n');

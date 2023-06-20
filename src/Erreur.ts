@@ -1,5 +1,5 @@
 import { KeyConsumer, KeyProvider, StaackCore, StaackCoreValue } from 'staack';
-import { GetMessage, GetMessageKey, MessageKey } from './keys';
+import { MessageKey } from './keys';
 import { fixStack, isErreur, resolve, resolveAsync, wrap, wrapAsync } from './utils';
 
 export class Erreur extends Error {
@@ -24,7 +24,7 @@ export class Erreur extends Error {
   }
 
   private getMessage(): string {
-    return this.get(GetMessageKey.Consumer)(this);
+    return this.get(MessageKey.Consumer);
   }
 
   has(consumer: KeyConsumer<any, any>): boolean {
@@ -45,10 +45,6 @@ export class Erreur extends Error {
 
   withMessage(message: string): Erreur {
     return this.with(MessageKey.Provider(message));
-  }
-
-  withGetMessage(getMessage: GetMessage): Erreur {
-    return this.with(GetMessageKey.Provider(getMessage));
   }
 
   static is = isErreur;

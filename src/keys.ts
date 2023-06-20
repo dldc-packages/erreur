@@ -1,14 +1,11 @@
 import { createKey, Key, KeyConsumer, KeyProvider, KeyProviderFn } from 'staack';
 import type { Erreur } from './Erreur';
 
-export const MessageKey = createKey<string>({ name: 'Message' });
+export interface ErreurKey<T, HasDefault extends boolean = boolean> extends Key<T, HasDefault> {
+  create(value: T): KeyProvider<T, HasDefault>;
+  extends(erreur: Erreur, value: T): Erreur;
+}
 
-export type GetMessage = (self: Erreur) => string;
-
-export const DEFAULT_GET_MESSAGE: GetMessage = (context) => {
-  return context.get(MessageKey.Consumer) ?? '[Erreur]';
-};
-
-export const GetMessageKey = createKey<GetMessage>({ name: 'GetMessage', defaultValue: DEFAULT_GET_MESSAGE });
+export const MessageKey = createKey<string>({ name: 'Message', defaultValue: '[Erreur]' });
 
 export { createKey, Key, KeyConsumer, KeyProvider, KeyProviderFn };
