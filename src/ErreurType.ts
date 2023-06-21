@@ -4,8 +4,6 @@ import { Erreur } from './Erreur';
 export const MessageKey = Key.createWithDefault<string>('Message', '[Erreur]');
 export const StackTraceKey = Key.create<string>('StackTrace');
 
-export { IKey, KeyConsumer, KeyProvider, KeyProviderFn };
-
 export interface IErreurType<T, HasDefault extends boolean = boolean, Args extends readonly any[] = [T]> {
   readonly Consumer: KeyConsumer<T, HasDefault>;
   readonly Provider: KeyProviderFn<T, HasDefault>;
