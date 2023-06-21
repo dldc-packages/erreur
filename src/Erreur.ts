@@ -85,6 +85,29 @@ export class Erreur extends Error {
     return this.with(MessageKey.Provider(message));
   }
 
+  merge(other: Erreur): Erreur {
+    if (other === this) {
+      return this;
+    }
+    const nextCore = StaackCore.merge(this.context, other.context);
+    if (nextCore === this.context) {
+      return this;
+    }
+    return new Erreur(nextCore);
+  }
+
+  mergeOn(other: Erreur): Erreur {
+    return other.merge(this);
+  }
+
+  dedupe(): Erreur {
+    const nextCore = StaackCore.dedupe(this.context);
+    if (nextCore === this.context) {
+      return this;
+    }
+    return new Erreur(nextCore);
+  }
+
   static is = isErreur;
   static resolve = resolve;
   static resolveAsync = resolveAsync;

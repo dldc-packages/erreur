@@ -1,3 +1,4 @@
+import { StaackCore } from 'staack';
 import { expect, test } from 'vitest';
 import { Erreur, ErreurType } from '../src/mod';
 
@@ -9,7 +10,7 @@ test('Gist', () => {
   const err = Erreur.create('Something went wrong');
 
   // Add data to the Erreur
-  const errWithStatusCode = HttpErrorType.extends(err, 500);
+  const errWithStatusCode = HttpErrorType.append(err, 500);
 
   // Get data from the Erreur
   const statusCode = errWithStatusCode.get(HttpErrorType.Consumer);
@@ -33,12 +34,12 @@ test('Add data to Erreur', () => {
 });
 
 test('HttpError with transforms', () => {
-  const HttpErrorType = ErreurType.define<{ status: number }>('HttpError', (err, value) => {
-    return err.withMessage(`[HttpError] ${value.status}`);
+  const HttpErrorType = ErreurType.define<{ status: number }>('HttpError', (err, provider, value) => {
+    return err.with(provider).withMessage(`[HttpError] ${value.status}`);
   });
 
-  const NotFoundErrorType = ErreurType.defineEmpty('NotFound', (err) => {
-    return HttpErrorType.extends(err, { status: 404 });
+  const NotFoundErrorType = ErreurType.defineEmpty('NotFound', (err, provider) => {
+    return HttpErrorType.append(err.with(provider), { status: 404 });
   });
 
   const err = NotFoundErrorType.create();
@@ -126,4 +127,65 @@ test('Erreur.from', () => {
   const anyErr = Erreur.fromUnknown(42);
   expect(anyErr).toBeInstanceOf(Erreur);
   expect(anyErr.message).toBe('42');
+});
+
+test('HttpError', () => {
+  interface IHttpError {
+    name: string;
+    code: number;
+    message: string;
+  }
+
+  const HTTP_NAMES: Record<string, string> = {
+    400: 'Bad Request',
+    401: 'Unauthorized',
+    403: 'Forbidden',
+  };
+
+  const HttpErrorType = ErreurType.defineWithTransform(
+    'HttpError',
+    (code: number = 500, message?: string): IHttpError => {
+      const name = HTTP_NAMES[code] || 'Unknown';
+      return { name, code, message: message || name };
+    },
+    (err, provider, data) => {
+      return err.with(provider).withMessage(`[HttpError] ${data.code} ${data.name}`);
+    }
+  );
+
+  const err = HttpErrorType.create(400);
+  expect(err.message).toBe('[HttpError] 400 Bad Request');
+  expect(err.get(HttpErrorType.Consumer)).toEqual({ name: 'Bad Request', code: 400, message: 'Bad Request' });
+
+  const ForbiddenErrorType = ErreurType.defineEmpty('Forbidden', (err, provider) => {
+    return HttpErrorType.append(err, 403).with(provider);
+  });
+
+  const err2 = ForbiddenErrorType.create();
+  expect(err2.message).toBe('[HttpError] 403 Forbidden');
+  expect(err2.has(ForbiddenErrorType.Consumer)).toBe(true);
+  expect(err2.get(HttpErrorType.Consumer)).toEqual({ name: 'Forbidden', code: 403, message: 'Forbidden' });
+
+  expect(StaackCore.debug(err2.context)).toMatchObject([
+    {
+      ctxName: 'Forbidden',
+      value: undefined,
+    },
+    {
+      ctxName: 'Message',
+      value: '[HttpError] 403 Forbidden',
+    },
+    {
+      ctxName: 'HttpError',
+      value: { code: 403, message: 'Forbidden', name: 'Forbidden' },
+    },
+    {
+      ctxName: 'StackTrace',
+    },
+  ]);
+});
+
+test('new Erreur has no stack', () => {
+  const err = new Erreur(null);
+  expect(err.stack).toBeUndefined();
 });
