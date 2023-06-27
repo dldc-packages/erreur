@@ -189,3 +189,17 @@ test('new Erreur has no stack', () => {
   const err = new Erreur(null);
   expect(err.stack).toBeUndefined();
 });
+
+test('Erreur withTransform and data', () => {
+  const ErreurDef = ErreurType.defineWithTransform(
+    'Erreur',
+    (arg1: string, arg2: number) => ({ arg1, arg2 }),
+    (err, provider, data) => {
+      return err.with(provider).withMessage(`Arg1: ${data.arg1}, Arg2: ${data.arg2}`);
+    }
+  );
+
+  const err = ErreurDef.create('root', 42);
+
+  expect(err.message).toBe('Arg1: root, Arg2: 42');
+});
