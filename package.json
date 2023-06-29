@@ -1,5 +1,5 @@
 {
-  "name": "erreur",
+  "name": "@dldc/erreur",
   "version": "3.0.4",
   "description": "Type safe custom errors",
   "keywords": [
@@ -7,13 +7,13 @@
     "ts",
     "typescript"
   ],
-  "homepage": "https://github.com/etienne-dldc/erreur#readme",
+  "homepage": "https://github.com/dldc-packages/erreur#readme",
   "bugs": {
-    "url": "https://github.com/etienne-dldc/erreur/issues"
+    "url": "https://github.com/dldc-packages/erreur/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/etienne-dldc/erreur.git"
+    "url": "git+https://github.com/dldc-packages/erreur.git"
   },
   "license": "MIT",
   "author": "Etienne Dldc <e.deladonchamps@gmail.com>",
