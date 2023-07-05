@@ -1,4 +1,4 @@
-import { StaackCore } from 'staack';
+import { StaackCore } from '@dldc/stack';
 import { expect, test } from 'vitest';
 import { Erreur, ErreurType } from '../src/mod';
 

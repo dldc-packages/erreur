@@ -1,4 +1,4 @@
-import { KeyConsumer, KeyProvider, StaackCore, StaackCoreValue } from 'staack';
+import { KeyConsumer, KeyProvider, StaackCore, StaackCoreValue } from '@dldc/stack';
 import { MessageKey, StackTraceKey } from './ErreurType';
 import { fixStack, isErreur, resolve, resolveAsync, wrap, wrapAsync } from './utils';
 

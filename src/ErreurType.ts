@@ -1,4 +1,4 @@
-import { IKey, Key, KeyConsumer, KeyProvider, KeyProviderFn } from 'staack';
+import { IKey, Key, KeyConsumer, KeyProvider, KeyProviderFn } from '@dldc/stack';
 import { Erreur } from './Erreur';
 
 export const MessageKey = Key.createWithDefault<string>('Message', '[Erreur]');
