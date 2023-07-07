@@ -58,7 +58,7 @@ export function resolve<Res>(fn: () => Res, onError: OnError = DEFAULT_ON_ERROR)
  */
 export async function resolveAsync<Res>(
   fn: () => Promise<Res>,
-  onError: OnError = DEFAULT_ON_ERROR
+  onError: OnError = DEFAULT_ON_ERROR,
 ): Promise<Res | Erreur> {
   try {
     return await wrapAsync(fn, onError);

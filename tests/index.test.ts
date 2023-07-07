@@ -150,7 +150,7 @@ test('HttpError', () => {
     },
     (err, provider, data) => {
       return err.with(provider).withMessage(`[HttpError] ${data.code} ${data.name}`);
-    }
+    },
   );
 
   const err = HttpErrorType.create(400);
@@ -196,7 +196,7 @@ test('Erreur withTransform and data', () => {
     (arg1: string, arg2: number) => ({ arg1, arg2 }),
     (err, provider, data) => {
       return err.with(provider).withMessage(`Arg1: ${data.arg1}, Arg2: ${data.arg2}`);
-    }
+    },
   );
 
   const err = ErreurDef.create('root', 42);
