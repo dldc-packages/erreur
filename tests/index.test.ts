@@ -21,7 +21,7 @@ test('Gist', () => {
 test('Get message', () => {
   const err = Erreur.create();
   expect(err.message).toBe('[Erreur]');
-  expect(err.toString()).toBe('Error: [Erreur]');
+  expect(err.toString()).toBe('Erreur: [Erreur]');
 });
 
 test('Add data to Erreur', () => {
@@ -202,4 +202,33 @@ test('Erreur withTransform and data', () => {
   const err = ErreurDef.create('root', 42);
 
   expect(err.message).toBe('Arg1: root, Arg2: 42');
+});
+
+test('Erreur.toString', () => {
+  const Err1 = ErreurType.defineWithTransform('Err1', (arg1: string) => ({ arg1 }));
+  const Err2 = ErreurType.defineWithTransform(
+    'Err2',
+    (arg1: string) => ({ arg1 }),
+    (err, provider) => {
+      return Err1.append(err, 'okok').with(provider);
+    },
+  );
+
+  const err = Err2.create('root');
+  expect(err.name).toBe('Erreur');
+  expect(err.toString()).toBe('Erreur: [Erreur]');
+});
+
+test('Erreur.withName', () => {
+  const Err1 = ErreurType.defineWithTransform(
+    'Err1',
+    (arg1: string) => ({ arg1 }),
+    (err, provider) => {
+      return err.with(provider).withName('Err1').withMessage(`Oops`);
+    },
+  );
+
+  const err = Err1.create('root');
+  expect(err.name).toBe('Err1');
+  expect(err.toString()).toBe('Err1: Oops');
 });

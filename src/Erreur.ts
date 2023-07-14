@@ -1,5 +1,5 @@
-import { KeyConsumer, KeyProvider, StaackCore, StaackCoreValue } from '@dldc/stack';
-import { MessageKey, StackTraceKey } from './ErreurType';
+import { StaackCore, type IKeyConsumer, type IKeyProvider, type TStaackCoreValue } from '@dldc/stack';
+import { MessageKey, NameKey, StackTraceKey } from './ErreurType';
 import { fixStack, isErreur, resolve, resolveAsync, wrap, wrapAsync } from './utils';
 
 export class Erreur extends Error {
@@ -36,16 +36,22 @@ export class Erreur extends Error {
     return Erreur.create(String(error));
   }
 
-  public readonly context: StaackCoreValue;
+  public readonly context!: TStaackCoreValue;
 
   /**
    * You should not use this constructor directly.
    * Use Erreur.create, Erreur.fromError or Erreur.fromUnknown instead.
    */
-  constructor(context: StaackCoreValue) {
-    super(`[Erreur]`);
-    this.context = context;
-    // dynamic message
+  constructor(context: TStaackCoreValue) {
+    super(``);
+    Object.defineProperty(this, 'context', {
+      value: context,
+      enumerable: false,
+      writable: false,
+    });
+    Object.defineProperty(this, 'name', {
+      get: () => this.getName(),
+    });
     Object.defineProperty(this, 'message', {
       get: () => this.getMessage(),
     });
@@ -57,6 +63,10 @@ export class Erreur extends Error {
     Object.setPrototypeOf(this, new.target.prototype);
   }
 
+  private getName(): string {
+    return this.get(NameKey.Consumer);
+  }
+
   private getMessage(): string {
     return this.get(MessageKey.Consumer);
   }
@@ -65,24 +75,28 @@ export class Erreur extends Error {
     return this.get(StackTraceKey.Consumer) ?? undefined;
   }
 
-  has(consumer: KeyConsumer<any, any>): boolean {
+  has(consumer: IKeyConsumer<any, any>): boolean {
     return StaackCore.has(this.context, consumer);
   }
 
-  get<T, HasDefault extends boolean>(consumer: KeyConsumer<T, HasDefault>): HasDefault extends true ? T : T | null {
+  get<T, HasDefault extends boolean>(consumer: IKeyConsumer<T, HasDefault>): HasDefault extends true ? T : T | null {
     return StaackCore.get(this.context, consumer);
   }
 
-  getOrFail<T>(consumer: KeyConsumer<T>): T {
+  getOrFail<T>(consumer: IKeyConsumer<T>): T {
     return StaackCore.getOrFail(this.context, consumer);
   }
 
-  with(...keys: Array<KeyProvider<any>>): Erreur {
+  with(...keys: Array<IKeyProvider<any>>): Erreur {
     return new Erreur(StaackCore.with(this.context, ...keys));
   }
 
   withMessage(message: string): Erreur {
     return this.with(MessageKey.Provider(message));
+  }
+
+  withName(name: string): Erreur {
+    return this.with(NameKey.Provider(name));
   }
 
   merge(other: Erreur): Erreur {
