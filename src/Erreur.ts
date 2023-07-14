@@ -5,7 +5,7 @@ import { fixStack, isErreur, resolve, resolveAsync, wrap, wrapAsync } from './ut
 export class Erreur extends Error {
   static create(message?: string): Erreur {
     const err = new Error('[Erreur]');
-    const stack = fixStack(err, Erreur.create);
+    const stack = fixStack(err, Erreur.create.bind(Erreur));
     let context = StaackCore.with(null, StackTraceKey.Provider(stack));
     if (message) {
       context = StaackCore.with(context, MessageKey.Provider(message));
