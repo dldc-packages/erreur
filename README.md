@@ -4,29 +4,54 @@
 
 ## Type safe custom errors ?
 
-This librairy expose a way to define and manipulate custom errors in a type safe way.
+In JavaScript and TypeScript you can throw anything so when you catch something you don't know what it is which make it hard to properly handle errors.
 
-To acheive this, it uses a class called `Erreur` (error in french) that extends the native `Error` class. This class can contain data but in order to ensure type safety, you cannot access this data directly. Instead, you must use a declaration that can be created using the `createKey`.
+One way to fix this is to create custom classes that extends the Error class
 
-Internally, the `Erreur` class uses [`etienne-dldc/staack`](https://github.com/etienne-dldc/staack) to store the data.
+```ts
+class HttpError extends Error {
+  // ...
+}
+
+try {
+  // ...
+} catch (error) {
+  if (error instanceof HttpError) {
+    // ...
+  }
+}
+```
+
+This works but it has a few drawbacks:
+
+1. You have to create a new class for each error type, which can be a lot of boilerplate. Also extending the `Error` class requires some tricks to make it work properly.
+2. You can't add data to an existing error. For example, you might catch an HttpError and want to add the url of the request that failed to the error. You can't do that with this approach.
+
+To solve these issue, this librairy expose a single custom error class called `Erreur` (error in french) that extends the native `Error` class. This class can contain data but in order to ensure type safety, you cannot access this data directly. Instead, you must use a _key_ that can be created using the `Key.define()` function.
+
+_Note_ Internally, the `Erreur` class uses [`etienne-dldc/staack`](https://github.com/etienne-dldc/staack) to store the data.
 
 Here is a simple example:
 
 ```ts
-import { ErreurType, Erreur } from 'erreur';
+import { ErreurType, Erreur } from '@dldc/erreur';
 
-// Create a new type
-const HttpErrorType = ErreurType.define<number>('StatusCode');
+// Define a key with the type of the datat (`number` in this case)
+const StatusCodeKey = ErreurType.define<number>('StatusCode');
 
-// Create a new Erreur
-const err = Erreur.create('Something went wrong');
+// Create a new Erreur with the number value
+const err = StatusCodeKey.create(500);
+// you can also extends en existing error to add the value
+const errBase = Erreur.create();
+const err1 = StatusCodeKey.append(errBase, 500);
 
-// Add data to the Erreur
-const errWithStatusCode = HttpErrorType.extends(err, 500);
+// err, errBase and err1 are all Erreur instances
+expect(err).toBeInstanceOf(Erreur);
+expect(errBase).toBeInstanceOf(Erreur);
+expect(err1).toBeInstanceOf(Erreur);
 
 // Get data from the Erreur
-const statusCode = errWithStatusCode.get(HttpErrorType.Consumer);
-
+const statusCode = err.get(StatusCodeKey.Consumer);
 expect(statusCode).toBe(500);
 ```
 
@@ -41,14 +66,30 @@ const err1 = Erreur.create();
 const err2 = Erreur.create('Something went wrong');
 ```
 
+_Note_: **Do not** use `new Erreur()` to create an `Erreur` instance, it will not work properly.
+
+### `Erreur.fromError`
+
+Create a new `Erreur` instance from an existing `Error` instance, it will reuse the message of the error:
+
+```ts
+const err1 = Erreur.fromError(new Error('Something went wrong'));
+```
+
+### `Erreur.fromUnknown`
+
+Create an error from any value, if the value is an `Error` instance it will call `Erreur.fromError`, otherwise it the value is converted to a string and used as the message of the error:
+
+```ts
+const err1 = Erreur.fromUnknown(anyValue);
+```
+
 ### `erreur.with(...providers)`
 
 Use the `with` method to add data to an `Erreur` instance. This method accepts any number of `Provider` declaration and returns a new `Erreur` instance:
 
 ```ts
-const MyKey = createKey<string>({ name: 'MyKey' });
-
-const err1 = Erreur.create().with(MyKey.Provider('Hello'));
+const err1 = Erreur.create().with(MyErrorKey.Provider('Hello'));
 ```
 
 ### `erreur.get(consumer)`
