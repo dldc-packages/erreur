@@ -3,18 +3,22 @@ import { expect, test } from 'vitest';
 import { Erreur, ErreurType } from '../src/mod';
 
 test('Gist', () => {
-  // Create a new type
-  const HttpErrorType = ErreurType.define<number>('StatusCode');
+  // Define a key with the type of the datat (`number` in this case)
+  const StatusCodeKey = ErreurType.define<number>('StatusCode');
 
-  // Create a new Erreur
-  const err = Erreur.create('Something went wrong');
+  // Create a new Erreur with the number value
+  const err = StatusCodeKey.create(500);
+  // you can also extends en existing error to add the value
+  const errBase = Erreur.create();
+  const err1 = StatusCodeKey.append(errBase, 500);
 
-  // Add data to the Erreur
-  const errWithStatusCode = HttpErrorType.append(err, 500);
+  // err, errBase and err1 are all Erreur instances
+  expect(err).toBeInstanceOf(Erreur);
+  expect(errBase).toBeInstanceOf(Erreur);
+  expect(err1).toBeInstanceOf(Erreur);
 
   // Get data from the Erreur
-  const statusCode = errWithStatusCode.get(HttpErrorType.Consumer);
-
+  const statusCode = err.get(StatusCodeKey.Consumer);
   expect(statusCode).toBe(500);
 });
 
@@ -231,4 +235,33 @@ test('Erreur.withName', () => {
   const err = Err1.create('root');
   expect(err.name).toBe('Err1');
   expect(err.toString()).toBe('Err1: Oops');
+});
+
+test('JSON.stringify Erreur', () => {
+  const Err1 = ErreurType.defineWithTransform(
+    'Err1',
+    (arg1: string) => ({ arg1 }),
+    (err, provider) => {
+      return err.with(provider).withName('Err1').withMessage(`Oops`);
+    },
+  );
+
+  const err = Err1.create('root');
+
+  expect(JSON.stringify(err)).toBe('{"name":"Err1","message":"Oops"}');
+});
+
+test('Custom json', () => {
+  const Err1 = ErreurType.defineWithTransform(
+    'Err1',
+    (arg1: string) => ({ arg1 }),
+    (err, provider, { arg1 }) => {
+      return err.with(provider).withName('Err1').withMessage(`Oops`).withJson({ type: 'Err1', arg1 });
+    },
+  );
+
+  const err = Err1.create('root');
+
+  expect(err.toJSON()).toEqual({ type: 'Err1', arg1: 'root' });
+  expect(JSON.stringify(err)).toBe('{"type":"Err1","arg1":"root"}');
 });

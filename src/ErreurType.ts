@@ -1,8 +1,11 @@
 import { Key, type IKey, type IKeyConsumer, type IKeyProvider, type TKeyProviderFn } from '@dldc/stack';
 import { Erreur } from './Erreur';
 
+export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+
 export const NameKey = Key.createWithDefault<string>('Name', 'Erreur');
 export const MessageKey = Key.createWithDefault<string>('Message', '[Erreur]');
+export const JsonKey = Key.create<JsonValue>('Json');
 export const StackTraceKey = Key.create<string>('StackTrace');
 
 export interface IErreurType<T, HasDefault extends boolean = boolean, Args extends readonly any[] = [T]> {

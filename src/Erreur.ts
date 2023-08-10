@@ -1,5 +1,6 @@
 import { StaackCore, type IKeyConsumer, type IKeyProvider, type TStaackCoreValue } from '@dldc/stack';
-import { MessageKey, NameKey, StackTraceKey } from './ErreurType';
+import type { JsonValue } from './ErreurType';
+import { JsonKey, MessageKey, NameKey, StackTraceKey } from './ErreurType';
 import { fixStack, isErreur, resolve, resolveAsync, wrap, wrapAsync } from './utils';
 
 export class Erreur extends Error {
@@ -38,6 +39,8 @@ export class Erreur extends Error {
 
   public readonly context!: TStaackCoreValue;
 
+  public readonly toJSON!: () => JsonValue;
+
   /**
    * You should not use this constructor directly.
    * Use Erreur.create, Erreur.fromError or Erreur.fromUnknown instead.
@@ -58,6 +61,9 @@ export class Erreur extends Error {
     Object.defineProperty(this, 'stack', {
       get: () => this.getStack(),
     });
+    Object.defineProperty(this, 'toJSON', {
+      value: () => this.getJson(),
+    });
 
     // restore prototype chain
     Object.setPrototypeOf(this, new.target.prototype);
@@ -73,6 +79,10 @@ export class Erreur extends Error {
 
   private getStack(): string | undefined {
     return this.get(StackTraceKey.Consumer) ?? undefined;
+  }
+
+  private getJson(): JsonValue {
+    return this.get(JsonKey.Consumer) ?? { name: this.getName(), message: this.getMessage() };
   }
 
   has(consumer: IKeyConsumer<any, any>): boolean {
@@ -97,6 +107,10 @@ export class Erreur extends Error {
 
   withName(name: string): Erreur {
     return this.with(NameKey.Provider(name));
+  }
+
+  withJson(value: JsonValue): Erreur {
+    return this.with(JsonKey.Provider(value));
   }
 
   merge(other: Erreur): Erreur {
