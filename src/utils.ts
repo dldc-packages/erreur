@@ -12,11 +12,8 @@ export function isErreur(e: unknown): e is Erreur {
 
 export type TOnError = (error: unknown) => Erreur;
 
-export const DEFAULT_ON_ERROR: TOnError = (error) => Erreur.fromUnknown(error);
+export const DEFAULT_ON_ERROR: TOnError = (error) => Erreur.createFromUnknown(error);
 
-/**
- * Ensure the function will either return a value or throw an Erreur instance
- */
 export function wrap<Res>(fn: () => Res, onError: TOnError = DEFAULT_ON_ERROR): Res {
   try {
     return fn();
@@ -28,9 +25,6 @@ export function wrap<Res>(fn: () => Res, onError: TOnError = DEFAULT_ON_ERROR): 
   }
 }
 
-/**
- * Same as wrap but for async functions
- */
 export async function wrapAsync<Res>(fn: () => Promise<Res>, onError: TOnError = DEFAULT_ON_ERROR): Promise<Res> {
   try {
     return await fn();
@@ -42,9 +36,6 @@ export async function wrapAsync<Res>(fn: () => Promise<Res>, onError: TOnError =
   }
 }
 
-/**
- * Same as wrap but will return an Erreur instance instead of throwing it
- */
 export function resolve<Res>(fn: () => Res, onError: TOnError = DEFAULT_ON_ERROR): Res | Erreur {
   try {
     return wrap(fn, onError);
@@ -53,9 +44,6 @@ export function resolve<Res>(fn: () => Res, onError: TOnError = DEFAULT_ON_ERROR
   }
 }
 
-/**
- * Same as resolve but for async functions
- */
 export async function resolveAsync<Res>(
   fn: () => Promise<Res>,
   onError: TOnError = DEFAULT_ON_ERROR,

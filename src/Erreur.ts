@@ -1,20 +1,33 @@
-import { StaackCore, type IKeyConsumer, type IKeyProvider, type TStaackCoreValue } from '@dldc/stack';
-import type { JsonValue } from './ErreurType';
-import { JsonKey, MessageKey, NameKey, StackTraceKey } from './ErreurType';
+import type { IKey, TArgsBase } from '@dldc/stack';
+import { Key, StackCore, type IKeyConsumer, type IKeyProvider, type TStackCoreValue } from '@dldc/stack';
 import { fixStack, isErreur, resolve, resolveAsync, wrap, wrapAsync } from './utils';
+
+export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+
+export const NameKey = Key.createWithDefault<string>('Name', 'Erreur');
+export const MessageKey = Key.createWithDefault<string>('Message', '[Erreur]');
+export const JsonKey = Key.create<JsonValue>('Json');
+export const StackTraceKey = Key.create<string>('StackTrace');
 
 export class Erreur extends Error {
   static create(message?: string): Erreur {
     const err = new Error('[Erreur]');
     const stack = fixStack(err, Erreur.create);
-    let context = StaackCore.with(null, StackTraceKey.Provider(stack));
+    let context = StackCore.with(null, StackTraceKey.Provider(stack));
     if (message) {
-      context = StaackCore.with(context, MessageKey.Provider(message));
+      context = StackCore.with(context, MessageKey.Provider(message));
     }
     return new Erreur(context);
   }
 
-  static fromError(error: Error): Erreur {
+  static createWith<T, HasDefault extends boolean, Args extends TArgsBase>(
+    key: IKey<T, HasDefault, Args>,
+    ...args: Args
+  ): Erreur {
+    return Erreur.create().with(key.Provider(...args));
+  }
+
+  static createFromError(error: Error): Erreur {
     if (isErreur(error)) {
       return error;
     }
@@ -27,9 +40,9 @@ export class Erreur extends Error {
    * If the value is an Error, it will be wrapped in an Erreur using error.message.
    * Otherwise, the value will be converted to a string and used as the message.
    */
-  static fromUnknown(error: unknown): Erreur {
+  static createFromUnknown(error: unknown): Erreur {
     if (error instanceof Error) {
-      return Erreur.fromError(error);
+      return Erreur.createFromError(error);
     }
     if (typeof error === 'string') {
       return Erreur.create(error);
@@ -37,7 +50,7 @@ export class Erreur extends Error {
     return Erreur.create(String(error));
   }
 
-  public readonly context!: TStaackCoreValue;
+  public readonly context!: TStackCoreValue;
 
   public readonly toJSON!: () => JsonValue;
 
@@ -45,7 +58,7 @@ export class Erreur extends Error {
    * You should not use this constructor directly.
    * Use Erreur.create, Erreur.fromError or Erreur.fromUnknown instead.
    */
-  constructor(context: TStaackCoreValue) {
+  constructor(context: TStackCoreValue) {
     super(``);
     Object.defineProperty(this, 'context', {
       value: context,
@@ -86,19 +99,19 @@ export class Erreur extends Error {
   }
 
   has(consumer: IKeyConsumer<any, any>): boolean {
-    return StaackCore.has(this.context, consumer);
+    return StackCore.has(this.context, consumer);
   }
 
   get<T, HasDefault extends boolean>(consumer: IKeyConsumer<T, HasDefault>): HasDefault extends true ? T : T | null {
-    return StaackCore.get(this.context, consumer);
+    return StackCore.get(this.context, consumer);
   }
 
   getOrFail<T>(consumer: IKeyConsumer<T>): T {
-    return StaackCore.getOrFail(this.context, consumer);
+    return StackCore.getOrFail(this.context, consumer);
   }
 
   with(...keys: Array<IKeyProvider<any>>): Erreur {
-    return new Erreur(StaackCore.with(this.context, ...keys));
+    return new Erreur(StackCore.with(this.context, ...keys));
   }
 
   withMessage(message: string): Erreur {
@@ -117,7 +130,7 @@ export class Erreur extends Error {
     if (other === this) {
       return this;
     }
-    const nextCore = StaackCore.merge(this.context, other.context);
+    const nextCore = StackCore.merge(this.context, other.context);
     if (nextCore === this.context) {
       return this;
     }
@@ -129,7 +142,7 @@ export class Erreur extends Error {
   }
 
   dedupe(): Erreur {
-    const nextCore = StaackCore.dedupe(this.context);
+    const nextCore = StackCore.dedupe(this.context);
     if (nextCore === this.context) {
       return this;
     }
@@ -137,8 +150,24 @@ export class Erreur extends Error {
   }
 
   static is = isErreur;
-  static resolve = resolve;
-  static resolveAsync = resolveAsync;
+
+  /**
+   * Ensure the function will either return a value or throw an Erreur instance
+   */
   static wrap = wrap;
+
+  /**
+   * Ensure the function will either return a value or throw an Erreur instance
+   */
   static wrapAsync = wrapAsync;
+
+  /**
+   * Either resturn the result or an Erreur instance
+   */
+  static resolve = resolve;
+
+  /**
+   * Either resturn the result or an Erreur instance
+   */
+  static resolveAsync = resolveAsync;
 }
