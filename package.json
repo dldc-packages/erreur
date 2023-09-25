@@ -45,7 +45,7 @@
     "typecheck:watch": "tsc --watch"
   },
   "dependencies": {
-    "@dldc/stack": "^4.0.1"
+    "@dldc/stack": "^4.0.2"
   },
   "devDependencies": {
     "@types/node": "^20.7.0",

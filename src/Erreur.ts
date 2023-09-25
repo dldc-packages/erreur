@@ -1,5 +1,5 @@
-import type { IKey, TArgsBase } from '@dldc/stack';
-import { Key, StackCore, type IKeyConsumer, type IKeyProvider, type TStackCoreValue } from '@dldc/stack';
+import type { IKeyBase, IKeyConsumer, IKeyProvider, TArgsBase, TStackCoreValue } from '@dldc/stack';
+import { Key, StackCore } from '@dldc/stack';
 import { fixStack, isErreur, resolve, resolveAsync, wrap, wrapAsync } from './utils';
 
 export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
@@ -21,7 +21,7 @@ export class Erreur extends Error {
   }
 
   static createWith<T, HasDefault extends boolean, Args extends TArgsBase>(
-    key: IKey<T, HasDefault, Args>,
+    key: IKeyBase<T, HasDefault, Args>,
     ...args: Args
   ): Erreur {
     return Erreur.create().with(key.Provider(...args));

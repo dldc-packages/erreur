@@ -6,8 +6,8 @@ settings:
 
 dependencies:
   '@dldc/stack':
-    specifier: ^4.0.1
-    version: 4.0.1
+    specifier: ^4.0.2
+    version: 4.0.2
 
 devDependencies:
   '@types/node':
@@ -91,8 +91,8 @@ packages:
     resolution: {integrity: sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==}
     dev: true
 
-  /@dldc/stack@4.0.1:
-    resolution: {integrity: sha512-ni6l1qenVn2s2u9NVq9katvw1dJ0xlQc5ydzHYSk6JZtnM6Z1FAm2dWkeqvgZTKXj9SmquILJ9fPi5SPOYzj8g==}
+  /@dldc/stack@4.0.2:
+    resolution: {integrity: sha512-rbg0ey5PyESKA+ABG3cr7Q+WDC7le+MJ4HBK8XtHbrgE1xSpiUSjpmMcdhGaUNmR+6mmxAEMci+NfAy/psapeQ==}
     dev: false
 
   /@esbuild/android-arm64@0.18.20:
