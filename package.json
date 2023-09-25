@@ -1,6 +1,6 @@
 {
   "name": "@dldc/erreur",
-  "version": "4.0.1",
+  "version": "4.1.0",
   "description": "Type safe custom errors",
   "keywords": [
     "error",
