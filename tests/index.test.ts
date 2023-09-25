@@ -2,7 +2,7 @@ import { expect, test } from 'vitest';
 import { Erreur, ErreurKey, Key, StackCore } from '../src/mod';
 
 test('Gist', () => {
-  // Create a key with the type of the data (`number` in this case)
+  // Define a key with the type of the data (`number` in this case) and a function to "instantiate" the Erreur
   const StatusCodeErreur = ErreurKey.define<number>('StatusCode')((provider, status: number) => {
     return Erreur.create().with(provider(status));
   });
@@ -20,7 +20,7 @@ test('Gist', () => {
 
   // Get data from the Erreur
   const statusCode = err.get(StatusCodeErreur.Consumer);
-  expect(statusCode).toBe(500);
+  expect(statusCode).toBe(500); // statusCode is typed as number
 });
 
 test('Get message', () => {

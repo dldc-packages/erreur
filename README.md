@@ -34,16 +34,18 @@ _Note_ Internally, the `Erreur` class uses [`@dldc/stack`](https://github.com/dl
 Here is a simple example:
 
 ```ts
-import { Key, Erreur } from '@dldc/erreur';
+import { ErreurKey, Erreur } from '@dldc/erreur';
 
-// Create a key with the type of the data (`number` in this case)
-const StatusCodeKey = Key.create<number>('StatusCode');
+// Define a key with the type of the data (`number` in this case) and a function to "instantiate" the Erreur
+const StatusCodeErreur = ErreurKey.define<number>('StatusCode')((provider, status: number) => {
+  return Erreur.create().with(provider(status));
+});
 
 // Create a new Erreur with the number value
-const err = Erreur.createWith(StatusCodeKey, 500);
+const err = StatusCodeErreur.create(500);
 // you can also extends en existing error to add the value
 const errBase = Erreur.create();
-const err1 = errBase.with(StatusCodeKey.Provider(500));
+const err1 = errBase.with(StatusCodeErreur.Provider(500));
 
 // err, errBase and err1 are all Erreur instances
 expect(err).toBeInstanceOf(Erreur);
@@ -51,8 +53,8 @@ expect(errBase).toBeInstanceOf(Erreur);
 expect(err1).toBeInstanceOf(Erreur);
 
 // Get data from the Erreur
-const statusCode = err.get(StatusCodeKey.Consumer);
-expect(statusCode).toBe(500);
+const statusCode = err.get(StatusCodeErreur.Consumer);
+expect(statusCode).toBe(500); // statusCode is typed as number
 ```
 
 ## API
@@ -92,6 +94,18 @@ Create an error from any value, if the value is an `Error` instance it will call
 ```ts
 const err1 = Erreur.createFromUnknown(anyValue);
 ```
+
+### `ErreurKey.define`
+
+> TODO
+
+### `ErreurKey.defineWithDefault`
+
+> TODO
+
+### `ErreurKey.defineEmpty`
+
+> TODO
 
 ### `erreur.with(...providers)`
 
