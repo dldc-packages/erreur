@@ -2,7 +2,7 @@ import { StackCore } from '@dldc/stack';
 import { ERREUR_CONTEXT, Erreur } from './Erreur';
 
 export function fixStack(target: Error, fn: Function = target.constructor): string {
-  const captureStackTrace = Error.captureStackTrace;
+  const captureStackTrace = (Error as any).captureStackTrace; // Build fails if we use Error.captureStackTrace directly
   captureStackTrace && captureStackTrace(target, fn);
   // remove first line (name of the error)
   const stackLines = target.stack!.split('\n');
