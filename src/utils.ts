@@ -1,9 +1,12 @@
-import { Erreur } from './Erreur';
+import { StackCore } from '@dldc/stack';
+import { ERREUR_CONTEXT, Erreur } from './Erreur';
 
 export function fixStack(target: Error, fn: Function = target.constructor): string {
-  const captureStackTrace: Function = (Error as any).captureStackTrace;
+  const captureStackTrace = Error.captureStackTrace;
   captureStackTrace && captureStackTrace(target, fn);
-  return target.stack!;
+  // remove first line (name of the error)
+  const stackLines = target.stack!.split('\n');
+  return stackLines.slice(1).join('\n');
 }
 
 export function isErreur(e: unknown): e is Erreur {
@@ -53,4 +56,8 @@ export async function resolveAsync<Res>(
   } catch (error) {
     return error as any;
   }
+}
+
+export function debug(erreur: Erreur) {
+  return StackCore.debug(erreur[ERREUR_CONTEXT]);
 }

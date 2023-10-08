@@ -1,6 +1,6 @@
 # 🛑 Erreur
 
-> Type safe custom errors
+> Type safe custom errors based on [`@dldc/stack`](https://github.com/dldc-packages/stack)
 
 ## Type safe custom errors ?
 
@@ -27,25 +27,27 @@ This works but it has a few drawbacks:
 1. You have to create a new class for each error type, which can be a lot of boilerplate. Also extending the `Error` class requires some tricks to make it work properly (`Object.setPrototypeOf(this, new.target.prototype);`)
 2. You can't add data to an existing error. For example, you might catch an HttpError and want to add the url of the request that failed to the error. You can't do that with this approach (at least not in a type-safe way).
 
-To solve these issue, this librairy expose a single custom error class called `Erreur` (error in french) that extends the native `Error` class. This class can contain data but in order to ensure type safety, you cannot access this data directly. Instead, you must use a _key_ that can be created using the `Key.define()` function.
+To solve these issue, this librairy expose a single custom error class called `Erreur` (error in french) that extends the native `Error` class. This class can contain data but in order to ensure type safety, you cannot access this data directly. Instead, you must use a _key_ that can be created using the `Key.create()` function.
 
 _Note_ Internally, the `Erreur` class uses [`@dldc/stack`](https://github.com/dldc-packages/stack) to store the data. You probably want to read the documentation of this package first to better understand how it works.
 
 Here is a simple example:
 
 ```ts
-import { ErreurKey, Erreur } from '@dldc/erreur';
+import { Key, Erreur } from '@dldc/erreur';
 
 // Define a key with the type of the data (`number` in this case) and a function to "instantiate" the Erreur
-const StatusCodeErreur = ErreurKey.define<number>('StatusCode')((provider, status: number) => {
-  return Erreur.create().with(provider(status));
-});
+const StatusCodeKey = Key.create<number>('StatusCode');
+
+function createStatusCodeError(status: number) {
+  return Erreur.create().with(StatusCodeKey.Provider(status));
+}
 
 // Create a new Erreur with the number value
-const err = StatusCodeErreur.create(500);
+const err = createStatusCodeError(500);
 // you can also extends en existing error to add the value
 const errBase = Erreur.create();
-const err1 = errBase.with(StatusCodeErreur.Provider(500));
+const err1 = errBase.with(StatusCodeKey.Provider(500));
 
 // err, errBase and err1 are all Erreur instances
 expect(err).toBeInstanceOf(Erreur);
@@ -53,7 +55,7 @@ expect(errBase).toBeInstanceOf(Erreur);
 expect(err1).toBeInstanceOf(Erreur);
 
 // Get data from the Erreur
-const statusCode = err.get(StatusCodeErreur.Consumer);
+const statusCode = err.get(StatusCodeKey.Consumer);
 expect(statusCode).toBe(500); // statusCode is typed as number
 ```
 
@@ -94,18 +96,6 @@ Create an error from any value, if the value is an `Error` instance it will call
 ```ts
 const err1 = Erreur.createFromUnknown(anyValue);
 ```
-
-### `ErreurKey.define`
-
-> TODO
-
-### `ErreurKey.defineWithDefault`
-
-> TODO
-
-### `ErreurKey.defineEmpty`
-
-> TODO
 
 ### `erreur.with(...providers)`
 

@@ -8,8 +8,7 @@ export type {
   TKeyProviderFn,
   TStackCoreTuple,
   TStackCoreValue,
+  TStringify,
   TVoidKey,
 } from '@dldc/stack';
 export { Erreur, JsonKey, MessageKey, NameKey, StackTraceKey, type JsonValue } from './Erreur';
-export { ErreurKey } from './ErreurKey';
-export type { IErreurKeyBase, TCreate, TDefine, TErreurKey, TVoidErreurKey } from './ErreurKey';
