@@ -1,67 +1,59 @@
-import type { IKeyBase, IKeyConsumer, IKeyProvider, TArgsBase, TStackCoreValue } from '@dldc/stack';
+import type { IKeyConsumer, IKeyProvider, TStackCoreValue } from '@dldc/stack';
 import { Key, StackCore } from '@dldc/stack';
-import { debug, fixStack, isErreur, resolve, resolveAsync, wrap, wrapAsync } from './utils';
+import { debug, isErreur, resolve, resolveAsync, wrap, wrapAsync } from './utils';
 
 export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
 export const NameKey = Key.createWithDefault<string>('Name', 'Erreur');
-export const MessageKey = Key.createWithDefault<string>('Message', '[Erreur]');
+export const MessageKey = Key.createWithDefault<string>('Message', '');
 export const JsonKey = Key.create<JsonValue>('Json');
-export const StackTraceKey = Key.create<string>('StackTrace');
+export const CauseKey = Key.create<Error>('Cause');
 
 export const ERREUR_CONTEXT = Symbol.for('dldc.erreur.context');
 
 const NODE_INSPECT = Symbol.for('nodejs.util.inspect.custom');
 
-export class Erreur extends Error {
-  static create(message?: string): Erreur {
-    const err = new Error('[Erreur]');
-    const stack = fixStack(err, Erreur.create);
-    let context = StackCore.with(null, StackTraceKey.Provider(stack));
-    if (message) {
-      context = StackCore.with(context, MessageKey.Provider(message));
-    }
+export class Erreur {
+  static createVoid(): Erreur {
+    return new Erreur(null);
+  }
+
+  static create(cause: Error): Erreur {
+    const context = StackCore.with(
+      null,
+      CauseKey.Provider(cause),
+      MessageKey.Provider(cause.message),
+      NameKey.Provider(cause.name),
+    );
     return new Erreur(context);
-  }
-
-  static createWith<T, HasDefault extends boolean, Args extends TArgsBase>(
-    key: IKeyBase<T, HasDefault, Args>,
-    ...args: Args
-  ): Erreur {
-    return Erreur.create().with(key.Provider(...args));
-  }
-
-  static createFromError(error: Error): Erreur {
-    if (isErreur(error)) {
-      return error;
-    }
-    return Erreur.create(error.message);
   }
 
   /**
    * Create an Erreur from an unknown value.
    * If the value is an Erreur, it will be returned as is.
-   * If the value is an Error, it will be wrapped in an Erreur using error.message.
+   * If the value is an Error, it will call Erreur.create.
    * Otherwise, the value will be converted to a string and used as the message.
    */
   static createFromUnknown(error: unknown): Erreur {
-    if (error instanceof Error) {
-      return Erreur.createFromError(error);
+    if (isErreur(error)) {
+      return error;
     }
-    if (typeof error === 'string') {
+    if (error instanceof Error) {
       return Erreur.create(error);
     }
-    return Erreur.create(String(error));
+    return Erreur.createVoid().withMessage(String(error));
   }
 
   public readonly [ERREUR_CONTEXT]!: TStackCoreValue;
+  public readonly name!: string;
+  public readonly message!: string;
+  public readonly cause!: Error | undefined;
 
   /**
    * You should not use this constructor directly.
    * Use Erreur.create, Erreur.fromError or Erreur.fromUnknown instead.
    */
   constructor(context: TStackCoreValue) {
-    super(``);
     Object.defineProperty(this, ERREUR_CONTEXT, {
       value: context,
       enumerable: false,
@@ -73,15 +65,12 @@ export class Erreur extends Error {
     Object.defineProperty(this, 'message', {
       get: () => this.getMessage(),
     });
-    Object.defineProperty(this, 'stack', {
-      get: () => this.getStack(),
+    Object.defineProperty(this, 'cause', {
+      get: () => this.getCause(),
     });
     Object.defineProperty(this, NODE_INSPECT, {
       value: () => this.toString(),
     });
-
-    // restore prototype chain
-    Object.setPrototypeOf(this, new.target.prototype);
   }
 
   toJSON(): JsonValue {
@@ -96,8 +85,8 @@ export class Erreur extends Error {
     return this.get(MessageKey.Consumer);
   }
 
-  private getStack(): string | undefined {
-    return this.get(StackTraceKey.Consumer) ?? undefined;
+  private getCause(): Error | undefined {
+    return this.get(CauseKey.Consumer) ?? undefined;
   }
 
   private getJson(): JsonValue {
@@ -156,7 +145,7 @@ export class Erreur extends Error {
   }
 
   toString() {
-    return `${this.getName()}: ${this.getMessage()}\n${this.stack}`;
+    return `${this.getName()}: ${this.getMessage()}`;
   }
 
   static readonly is = isErreur;

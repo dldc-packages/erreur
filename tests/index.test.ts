@@ -7,13 +7,13 @@ test('Gist', () => {
   const StatusCodeKey = Key.create<number>('StatusCode');
 
   function createStatusCodeError(status: number) {
-    return Erreur.create().with(StatusCodeKey.Provider(status));
+    return Erreur.createVoid().with(StatusCodeKey.Provider(status));
   }
 
   // Create a new Erreur with the number value
   const err = createStatusCodeError(500);
   // you can also extends en existing error to add the value
-  const errBase = Erreur.create();
+  const errBase = Erreur.createVoid();
   const err1 = errBase.with(StatusCodeKey.Provider(500));
 
   // err, errBase and err1 are all Erreur instances
@@ -26,14 +26,26 @@ test('Gist', () => {
   expect(statusCode).toBe(500); // statusCode is typed as number
 });
 
+test('Create with cause', () => {
+  const err = Erreur.create(new Error('Something went wrong'));
+  expect(err.message).toBe('Something went wrong');
+  expect(err.cause).toBeInstanceOf(Error);
+  expect(err.name).toBe('Error');
+});
+
+test('Void erreur has no cause', () => {
+  const err = Erreur.createVoid();
+  expect(err.cause).toBeUndefined();
+});
+
 test('Get message', () => {
-  const err = Erreur.create();
-  expect(err.message).toBe('[Erreur]');
+  const err = Erreur.createVoid();
+  expect(err.message).toBe('');
 });
 
 test('Add data to Erreur', () => {
   const Err = Key.create<number>('Key');
-  const err = Erreur.create().with(Err.Provider(42));
+  const err = Erreur.createVoid().with(Err.Provider(42));
   expect(err).toBeInstanceOf(Erreur);
   expect(err.get(Err.Consumer)).toBe(42);
 
@@ -44,7 +56,10 @@ test('HttpError with message', () => {
   const HttpErrorKey = Key.create<{ status: number }>('HttpError');
 
   function createHttpError(status: number) {
-    return Erreur.createWith(HttpErrorKey, { status }).withMessage(`[HttpError] ${status}`);
+    return Erreur.createVoid()
+      .with(HttpErrorKey.Provider({ status }))
+      .withName('HttpError')
+      .withMessage(`Error ${status}`);
   }
 
   const NotFoundError = Key.createEmpty('NotFound');
@@ -54,47 +69,20 @@ test('HttpError with message', () => {
   }
 
   const err = createNotFoundError();
-  expect(err.message).toBe('[HttpError] 404');
+  expect(err.message).toBe('Error 404');
   expect(err.get(HttpErrorKey.Consumer)).toEqual({ status: 404 });
 });
 
-test('Erreur.stack', () => {
-  const error = Erreur.create();
-  const lines = error.stack!.split('\n');
-  expect(lines[0]).toMatch('erreur/tests/index.test.ts');
-});
-
-test('Erreur.stack with more steps', () => {
-  function step1() {
-    return step2();
-  }
-
-  function step2() {
-    return step3();
-  }
-
-  function step3() {
-    return Erreur.create();
-  }
-
-  const err = step1();
-
-  const lines = err.stack!.split('\n');
-  expect(lines[0]).toMatch('at step3');
-  expect(lines[1]).toMatch('at step2');
-  expect(lines[2]).toMatch('at step1');
-});
-
 test('Create with message', () => {
-  const err = Erreur.create('Something went wrong');
+  const err = Erreur.createFromUnknown('Something went wrong');
   expect(err.message).toBe('Something went wrong');
 });
 
 test('With message', () => {
-  const err = Erreur.create().withMessage('Something went wrong');
+  const err = Erreur.createVoid().withMessage('Something went wrong');
   expect(err.message).toBe('Something went wrong');
 
-  const err2 = Erreur.create('Something went wrong').withMessage('Something went wrong 2');
+  const err2 = Erreur.createFromUnknown('Something went wrong').withMessage('Something went wrong 2');
   expect(err2.message).toBe('Something went wrong 2');
 });
 
@@ -125,7 +113,7 @@ test('Erreur.resolve', () => {
 });
 
 test('Erreur.from', () => {
-  const err = Erreur.create();
+  const err = Erreur.createVoid();
 
   expect(Erreur.createFromUnknown(err)).toBe(err);
 
@@ -155,7 +143,7 @@ test('HttpError', () => {
 
   function createHttpError(code: number, message?: string) {
     const name = HTTP_NAMES[code] || 'Unknown';
-    return Erreur.create()
+    return Erreur.createVoid()
       .with(HttpErrorKey.Provider({ name, code, message: message || name }))
       .withName('HttpError')
       .withMessage(`${code} ${name}`);
@@ -182,27 +170,23 @@ test('HttpError', () => {
     { ctxName: 'Forbidden', value: undefined },
     { ctxName: 'Message', value: '403 Forbidden' },
     { ctxName: 'Name', value: 'HttpError' },
-    { ctxName: 'HttpError', value: { code: 403, message: 'Forbidden', name: 'Forbidden' } },
-    { ctxName: 'StackTrace' },
+    {
+      ctxName: 'HttpError',
+      value: { name: 'Forbidden', code: 403, message: 'Forbidden' },
+    },
   ]);
   expect(Erreur.debug(err2)).toMatchObject([
     { ctxName: 'Forbidden', value: undefined },
     { ctxName: 'Message', value: '403 Forbidden' },
     { ctxName: 'Name', value: 'HttpError' },
     { ctxName: 'HttpError', value: { code: 403, message: 'Forbidden', name: 'Forbidden' } },
-    { ctxName: 'StackTrace' },
   ]);
-});
-
-test('new Erreur has no stack', () => {
-  const err = new Erreur(null);
-  expect(err.stack).toBeUndefined();
 });
 
 test('Erreur.toString', () => {
   const Err1Key = Key.create<{ arg1: string }>('Err1');
   function createErr1(arg1: string) {
-    return Erreur.create().with(Err1Key.Provider({ arg1 }));
+    return Erreur.createFromUnknown('Err1').with(Err1Key.Provider({ arg1 }));
   }
 
   const Err2Key = Key.create<{ arg2: string }>('Err2');
@@ -213,13 +197,13 @@ test('Erreur.toString', () => {
 
   const err = createErr2('root');
   expect(err.name).toBe('Erreur');
-  expect(err.toString().split('\n')[0]).toBe('Erreur: [Erreur]');
+  expect(err.toString().split('\n')[0]).toBe('Erreur: Err1');
 });
 
 test('Erreur.withName', () => {
   const Err1Key = Key.create<{ arg1: string }>('Err1');
   function createErr1(arg1: string) {
-    return Erreur.create().with(Err1Key.Provider({ arg1 })).withName('Err1').withMessage(`Oops`);
+    return Erreur.createVoid().with(Err1Key.Provider({ arg1 })).withName('Err1').withMessage(`Oops`);
   }
 
   const err = createErr1('root');
@@ -230,7 +214,7 @@ test('Erreur.withName', () => {
 test('JSON.stringify Erreur', () => {
   const Err1Key = Key.create<{ arg1: string }>('Err1');
   function createErr1(arg1: string) {
-    return Erreur.create().with(Err1Key.Provider({ arg1 })).withName('Err1').withMessage(`Oops`);
+    return Erreur.createVoid().with(Err1Key.Provider({ arg1 })).withName('Err1').withMessage(`Oops`);
   }
 
   const err = createErr1('root');
@@ -241,7 +225,7 @@ test('JSON.stringify Erreur', () => {
 test('Custom json', () => {
   const Err1Key = Key.create<{ arg1: string }>('Err1');
   function createErr1(arg1: string) {
-    return Erreur.create()
+    return Erreur.createVoid()
       .with(Err1Key.Provider({ arg1 }))
       .withName('Err1')
       .withMessage(`Oops`)

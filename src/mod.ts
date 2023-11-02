@@ -11,4 +11,4 @@ export type {
   TStringify,
   TVoidKey,
 } from '@dldc/stack';
-export { Erreur, JsonKey, MessageKey, NameKey, StackTraceKey, type JsonValue } from './Erreur';
+export { CauseKey, Erreur, JsonKey, MessageKey, NameKey, type JsonValue } from './Erreur';
