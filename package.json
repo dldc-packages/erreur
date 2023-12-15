@@ -21,13 +21,17 @@
   "type": "module",
   "exports": {
     ".": {
-      "import": "./dist/mod.mjs",
-      "require": "./dist/mod.js",
-      "types": "./dist/mod.d.ts"
+      "import": {
+        "types": "./dist/mod.js",
+        "default": "./dist/mod.d.ts"
+      },
+      "require": {
+        "types": "./dist/mod.djs",
+        "default": "./dist/mod.d.cts"
+      }
     }
   },
   "main": "./dist/mod.js",
-  "module": "./dist/mod.mjs",
   "types": "./dist/mod.d.ts",
   "files": [
     "dist"
