@@ -18,6 +18,7 @@
   "license": "MIT",
   "author": "Etienne Dldc <e.deladonchamps@gmail.com>",
   "sideEffects": false,
+  "type": "module",
   "exports": {
     ".": {
       "import": "./dist/mod.mjs",
