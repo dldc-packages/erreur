@@ -85,7 +85,7 @@
     "root": true
   },
   "dependencies": {
-    "@dldc/stack": "^4.1.4"
+    "@dldc/stack": "^4.1.5"
   },
   "devDependencies": {
     "@types/node": "^20.10.4",
