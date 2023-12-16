@@ -21,14 +21,9 @@
   "type": "module",
   "exports": {
     ".": {
-      "import": {
-        "module": "./dist/mod.js",
-        "types": "./dist/mod.d.ts"
-      },
-      "require": {
-        "module": "./dist/mod.cjs",
-        "types": "./dist/mod.d.cts"
-      }
+      "import": "./dist/mod.js",
+      "require": "./dist/mod.cjs",
+      "types": "./dist/mod.d.ts"
     }
   },
   "main": "./dist/mod.js",
