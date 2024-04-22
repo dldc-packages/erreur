@@ -1,239 +1,147 @@
-import { expect, test } from 'vitest';
-import { ERREUR_CONTEXT } from '../src/Erreur';
-import { Erreur, Key, StackCore } from '../src/mod';
+import { describe, expect, test } from 'vitest';
+import { createErreurStore, createVoidErreurStore, matchErreurs, matchFirstErreur, toError } from '../src/mod';
 
 test('Gist', () => {
-  // Define a key with the type of the data (`number` in this case) and a function to "instantiate" the Erreur
-  const StatusCodeKey = Key.create<number>('StatusCode');
+  const store1 = createErreurStore<number>();
+  const store2 = createErreurStore<string>();
+  const store3 = createVoidErreurStore();
 
-  function createStatusCodeError(status: number) {
-    return Erreur.createVoid().with(StatusCodeKey.Provider(status));
-  }
+  const err = new Error('test');
+  store1.set(err, 1);
 
-  // Create a new Erreur with the number value
-  const err = createStatusCodeError(500);
-  // you can also extends en existing error to add the value
-  const errBase = Erreur.createVoid();
-  const err1 = errBase.with(StatusCodeKey.Provider(500));
+  const data = matchFirstErreur(err, [store2, store1]);
+  expect(data).toBe(1);
 
-  // err, errBase and err1 are all Erreur instances
-  expect(err).toBeInstanceOf(Erreur);
-  expect(errBase).toBeInstanceOf(Erreur);
-  expect(err1).toBeInstanceOf(Erreur);
-
-  // Get data from the Erreur
-  const statusCode = err.get(StatusCodeKey.Consumer);
-  expect(statusCode).toBe(500); // statusCode is typed as number
+  const matched = matchErreurs(err, { store1, store2, store3 });
+  expect(matched).toEqual({ store1: 1, store2: undefined, store3: undefined });
 });
 
-test('Create with cause', () => {
-  const err = Erreur.create(new Error('Something went wrong'));
-  expect(err.message).toBe('Something went wrong');
-  expect(err.cause).toBeInstanceOf(Error);
-  expect(err.name).toBe('Error');
-});
-
-test('Void erreur has no cause', () => {
-  const err = Erreur.createVoid();
-  expect(err.cause).toBeUndefined();
-});
-
-test('Get message', () => {
-  const err = Erreur.createVoid();
-  expect(err.message).toBe('');
-});
-
-test('Add data to Erreur', () => {
-  const Err = Key.create<number>('Key');
-  const err = Erreur.createVoid().with(Err.Provider(42));
-  expect(err).toBeInstanceOf(Erreur);
-  expect(err.get(Err.Consumer)).toBe(42);
-
-  expect(err.has(Err.Consumer)).toBe(true);
-});
-
-test('HttpError with message', () => {
-  const HttpErrorKey = Key.create<{ status: number }>('HttpError');
-
-  function createHttpError(status: number) {
-    return Erreur.createVoid()
-      .with(HttpErrorKey.Provider({ status }))
-      .withName('HttpError')
-      .withMessage(`Error ${status}`);
-  }
-
-  const NotFoundError = Key.createEmpty('NotFound');
-
-  function createNotFoundError() {
-    return createHttpError(404).with(NotFoundError.Provider());
-  }
-
-  const err = createNotFoundError();
-  expect(err.message).toBe('Error 404');
-  expect(err.get(HttpErrorKey.Consumer)).toEqual({ status: 404 });
-});
-
-test('Create with message', () => {
-  const err = Erreur.createFromUnknown('Something went wrong');
-  expect(err.message).toBe('Something went wrong');
-});
-
-test('With message', () => {
-  const err = Erreur.createVoid().withMessage('Something went wrong');
-  expect(err.message).toBe('Something went wrong');
-
-  const err2 = Erreur.createFromUnknown('Something went wrong').withMessage('Something went wrong 2');
-  expect(err2.message).toBe('Something went wrong 2');
-});
-
-test('Erreur.wrap', () => {
-  const fn = () =>
-    Erreur.wrap(() => {
-      throw new Error('Something went wrong');
-    });
-
-  expect(fn).toThrow('Something went wrong');
-  expect(fn).toThrow(Erreur);
-});
-
-test('Erreur.resolve', () => {
-  const err = Erreur.resolve(() => {
-    throw new Error('Something went wrong');
+describe('toError', () => {
+  test('return error as is', () => {
+    const error = new Error('Error message');
+    const err = toError(error);
+    expect(err).toBe(error);
   });
 
-  expect(err).toBeInstanceOf(Erreur);
-  expect(err.message).toBe('Something went wrong');
-
-  const err2 = Erreur.resolve(() => {
-    throw err;
+  test('create error from text', () => {
+    const error = 'Error message';
+    const err = toError(error);
+    expect(err).toBeInstanceOf(Error);
+    expect(err.message).toBe(error);
   });
 
-  expect(err2).toBeInstanceOf(Erreur);
-  expect(err2).toBe(err);
+  test('create error from object with message property', () => {
+    const error = { message: 'Error message' };
+    const err = toError(error);
+    expect(err).toBeInstanceOf(Error);
+    expect(err.message).toBe(`ErrorFromObject: Error message`);
+  });
+
+  test('create error from object with message and cause property', () => {
+    const error = { message: 'Error message', cause: new Error('Cause') };
+    const err = toError(error);
+    expect(err).toBeInstanceOf(Error);
+    expect(err.message).toBe(`ErrorFromObject: Error message`);
+    expect(err.cause).toBe(error.cause);
+  });
+
+  test('Error from number', () => {
+    const error = 42;
+    const err = toError(error);
+    expect(err).toBeInstanceOf(Error);
+    expect(err.message).toBe(`ErrorFromNumber: 42`);
+  });
+
+  test('Error from boolean', () => {
+    const error = true;
+    const err = toError(error);
+    expect(err).toBeInstanceOf(Error);
+    expect(err.message).toBe(`ErrorFromBoolean: true`);
+  });
+
+  test('Error from null', () => {
+    const error = null;
+    const err = toError(error);
+    expect(err).toBeInstanceOf(Error);
+    expect(err.message).toBe(`ErrorFromNull`);
+  });
+
+  test('Error from undefined', () => {
+    const error = undefined;
+    const err = toError(error);
+    expect(err).toBeInstanceOf(Error);
+    expect(err.message).toBe(`ErrorFromUndefined`);
+  });
+
+  test('Error from object', () => {
+    const error = { a: 1, b: 'test' };
+    const err = toError(error);
+    expect(err).toBeInstanceOf(Error);
+    expect(err.message).toBe(`ErrorFromObject: {"a":1,"b":"test"}`);
+  });
+
+  test('Error from unserializable object', () => {
+    const error = {
+      toJSON: () => {
+        throw new Error('test');
+      },
+    };
+    const err = toError(error);
+    expect(err).toBeInstanceOf(Error);
+    expect(err.message).toBe(`ErrorFromObject: [object]`);
+  });
 });
 
-test('Erreur.from', () => {
-  const err = Erreur.createVoid();
+describe('set', () => {
+  test('should set the error', () => {
+    const store = createErreurStore<number>();
+    const err = new Error('test');
+    store.set(err, 42);
+    expect(store.has(err)).toBe(true);
+    expect(store.get(err)).toBe(42);
+  });
 
-  expect(Erreur.createFromUnknown(err)).toBe(err);
+  test('throw if error already exists', () => {
+    const store = createErreurStore<number>();
+    const err = new Error('test');
+    store.set(err, 42);
+    expect(() => store.set(err, 42)).toThrowError('Error already exists in store');
+  });
 
-  const strErr = Erreur.createFromUnknown('Some text');
-  expect(strErr).toBeInstanceOf(Erreur);
-  expect(strErr.message).toBe('Some text');
-
-  const anyErr = Erreur.createFromUnknown(42);
-  expect(anyErr).toBeInstanceOf(Erreur);
-  expect(anyErr.message).toBe('42');
+  test('throw if error is not an instance of Error', () => {
+    const store = createErreurStore<number>();
+    expect(() => store.set('test' as any, 42)).toThrowError('Error should be an instance of Error');
+  });
 });
 
-test('HttpError', () => {
-  interface IHttpError {
-    name: string;
-    code: number;
-    message: string;
-  }
+describe('setAndThrow', () => {
+  const store = createErreurStore<number>();
 
-  const HTTP_NAMES: Record<string, string> = {
-    400: 'Bad Request',
-    401: 'Unauthorized',
-    403: 'Forbidden',
-  };
-
-  const HttpErrorKey = Key.create<IHttpError>('HttpError');
-
-  function createHttpError(code: number, message?: string) {
-    const name = HTTP_NAMES[code] || 'Unknown';
-    return Erreur.createVoid()
-      .with(HttpErrorKey.Provider({ name, code, message: message || name }))
-      .withName('HttpError')
-      .withMessage(`${code} ${name}`);
-  }
-
-  const err = createHttpError(400);
-  expect(err.message).toBe('400 Bad Request');
-  expect(err.name).toBe('HttpError');
-  expect(err.get(HttpErrorKey.Consumer)).toEqual({ name: 'Bad Request', code: 400, message: 'Bad Request' });
-
-  const ForbiddenErrorKey = Key.createEmpty('Forbidden');
-
-  function createForbiddenError() {
-    return createHttpError(403).with(ForbiddenErrorKey.Provider());
-  }
-
-  const err2 = createForbiddenError();
-  expect(err2.message).toBe('403 Forbidden');
-  expect(err.name).toBe('HttpError');
-  expect(err2.has(ForbiddenErrorKey.Consumer)).toBe(true);
-  expect(err2.get(HttpErrorKey.Consumer)).toEqual({ name: 'Forbidden', code: 403, message: 'Forbidden' });
-
-  expect(StackCore.debug(err2[ERREUR_CONTEXT])).toMatchObject([
-    { ctxName: 'Forbidden', value: undefined },
-    { ctxName: 'Message', value: '403 Forbidden' },
-    { ctxName: 'Name', value: 'HttpError' },
-    {
-      ctxName: 'HttpError',
-      value: { name: 'Forbidden', code: 403, message: 'Forbidden' },
-    },
-  ]);
-  expect(Erreur.debug(err2)).toMatchObject([
-    { ctxName: 'Forbidden', value: undefined },
-    { ctxName: 'Message', value: '403 Forbidden' },
-    { ctxName: 'Name', value: 'HttpError' },
-    { ctxName: 'HttpError', value: { code: 403, message: 'Forbidden', name: 'Forbidden' } },
-  ]);
+  test('should set the error and throw it', () => {
+    let err: Error;
+    expect(() => {
+      try {
+        store.setAndThrow('test', 42);
+      } catch (e) {
+        err = e as any;
+        throw e;
+      }
+    }).toThrowError('test');
+    expect(store.has(err!)).toBe(true);
+    expect(store.get(err!)).toBe(42);
+  });
 });
 
-test('Erreur.toString', () => {
-  const Err1Key = Key.create<{ arg1: string }>('Err1');
-  function createErr1(arg1: string) {
-    return Erreur.createFromUnknown('Err1').with(Err1Key.Provider({ arg1 }));
-  }
+describe('matchErreur', () => {
+  test('basic matchErreur', () => {
+    const store1 = createErreurStore<number>();
+    const store2 = createErreurStore<string>();
+    const store3 = createVoidErreurStore();
 
-  const Err2Key = Key.create<{ arg2: string }>('Err2');
+    const err = new Error('test');
+    store1.set(err, 1);
 
-  function createErr2(arg2: string) {
-    return createErr1('okok').with(Err2Key.Provider({ arg2 }));
-  }
-
-  const err = createErr2('root');
-  expect(err.name).toBe('Erreur');
-  expect(err.toString().split('\n')[0]).toBe('Erreur: Err1');
-});
-
-test('Erreur.withName', () => {
-  const Err1Key = Key.create<{ arg1: string }>('Err1');
-  function createErr1(arg1: string) {
-    return Erreur.createVoid().with(Err1Key.Provider({ arg1 })).withName('Err1').withMessage(`Oops`);
-  }
-
-  const err = createErr1('root');
-  expect(err.name).toBe('Err1');
-  expect(err.toString().split('\n')[0]).toBe('Err1: Oops');
-});
-
-test('JSON.stringify Erreur', () => {
-  const Err1Key = Key.create<{ arg1: string }>('Err1');
-  function createErr1(arg1: string) {
-    return Erreur.createVoid().with(Err1Key.Provider({ arg1 })).withName('Err1').withMessage(`Oops`);
-  }
-
-  const err = createErr1('root');
-
-  expect(JSON.stringify(err)).toBe('{"name":"Err1","message":"Oops"}');
-});
-
-test('Custom json', () => {
-  const Err1Key = Key.create<{ arg1: string }>('Err1');
-  function createErr1(arg1: string) {
-    return Erreur.createVoid()
-      .with(Err1Key.Provider({ arg1 }))
-      .withName('Err1')
-      .withMessage(`Oops`)
-      .withJson({ type: 'Err1', arg1 });
-  }
-
-  const err = createErr1('root');
-
-  expect(err.toJSON()).toEqual({ type: 'Err1', arg1: 'root' });
-  expect(JSON.stringify(err)).toBe('{"type":"Err1","arg1":"root"}');
+    const matched = matchErreurs(err, { store1, store2, store3 });
+    expect(matched).toEqual({ store1: 1, store2: undefined, store3: undefined });
+  });
 });

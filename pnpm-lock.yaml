@@ -4,11 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-dependencies:
-  '@dldc/stack':
-    specifier: ^4.1.7
-    version: 4.1.7
-
 devDependencies:
   '@types/node':
     specifier: ^20.12.7
@@ -113,10 +108,6 @@ packages:
   /@bcoe/v8-coverage@0.2.3:
     resolution: {integrity: sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==}
     dev: true
-
-  /@dldc/stack@4.1.7:
-    resolution: {integrity: sha512-LDl0TEUD0NGKphZFw+/X8yhNTYVOiGhNaEe4/WRROkjz9B4B07OosrQLBJ9Dam2kxJ5WpmfAhqIQ6udgJsZyjw==}
-    dev: false
 
   /@esbuild/aix-ppc64@0.19.12:
     resolution: {integrity: sha512-bmoCYyWdEL3wDQIVbcyzRyeKLgk2WtWLTWz1ZIAZF/EGbNOwSA6ew3PftJ1PqMiOOGu0OyFMzG53L0zqIpPeNA==}

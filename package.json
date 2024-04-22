@@ -84,9 +84,6 @@
     },
     "root": true
   },
-  "dependencies": {
-    "@dldc/stack": "^4.1.7"
-  },
   "devDependencies": {
     "@types/node": "^20.12.7",
     "@typescript-eslint/eslint-plugin": "^7.6.0",
