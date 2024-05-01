@@ -83,6 +83,35 @@ const PermissionErrorStore = createErreurStore<{ userId: string }>();
 export const ReadonlyPermissionErrorStore = PermissionErrorStore.asReadonly;
 ```
 
+## Using union types
+
+Instead of creating multiple stores, you can use union types to match multiple errors at once.
+
+```ts
+import { createErreurStore } from '@dldc/erreur';
+
+export type TDemoErreurData =
+  | { kind: 'FirstErrorKind'; someData: string }
+  | { kind: 'SecondErrorKind'; someOtherData: number };
+
+const DemoErreurInternal = createErreurStore<TDemoErreurData>();
+
+// only expose a readonly version of the store
+export const DemoErreur = DemoErreurInternal.asReadonly;
+
+// exposing functions to create errors
+
+export function createFirstError(someData: string) {
+  return DemoErreurInternal.setAndReturn(new Error('First error'), { kind: 'FirstErrorKind', someData });
+}
+
+export function createSecondError(someOtherData: number) {
+  return DemoErreurInternal.setAndReturn(new Error('Second error'), { kind: 'SecondErrorKind', someOtherData });
+}
+```
+
+**Note**: Keep in mind that you can `set` only once per error / store. If you need to set multiple errors you will need to create multiple stores.
+
 ## Matching multiple stores at once
 
 If you have multiple stores and you want to match any of them, you can use `if else` statements but we provide 2 utility functions to make it easier.

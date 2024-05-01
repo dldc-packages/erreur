@@ -10,12 +10,14 @@ export interface TErreurStore<Data> extends TReadonlyErreurStore<Data> {
   asReadonly: TReadonlyErreurStore<Data>;
   set(error: Error, data: Data): void;
   setAndThrow(error: unknown, data: Data): never;
+  setAndReturn(error: unknown, data: Data): Error;
 }
 
 export interface TVoidErreurStore extends TReadonlyErreurStore<true> {
   asReadonly: TReadonlyErreurStore<true>;
   set(error: Error): void;
   setAndThrow(error: unknown): never;
+  setAndReturn(error: unknown): Error;
 }
 
 export type TErreurStoreBase = TErreurStore<any> | TVoidErreurStore;
@@ -37,6 +39,7 @@ function createErreurStoreInternal<Data>(defaultValue: any): TErreurStore<Data> 
     [ERREUR_DATA]: true as any,
     set,
     setAndThrow,
+    setAndReturn,
     has,
     get,
     asReadonly: {
@@ -67,6 +70,12 @@ function createErreurStoreInternal<Data>(defaultValue: any): TErreurStore<Data> 
     const err = toError(error);
     set(err, data);
     throw err;
+  }
+
+  function setAndReturn(error: unknown, data: Data = defaultValue): Error {
+    const err = toError(error);
+    set(err, data);
+    return err;
   }
 }
 
