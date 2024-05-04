@@ -1,9 +1,9 @@
-const ERREUR_DATA = Symbol('ERREUR_DATA');
+const ERREUR_DATA = Symbol("ERREUR_DATA");
 
 export interface TReadonlyErreurStore<Data> {
   [ERREUR_DATA]: Data;
-  has(error: any): boolean;
-  get(error: any): Data | undefined;
+  has(error: unknown): boolean;
+  get(error: unknown): Data | undefined;
 }
 
 export interface TErreurStore<Data> extends TReadonlyErreurStore<Data> {
@@ -20,9 +20,12 @@ export interface TVoidErreurStore extends TReadonlyErreurStore<true> {
   setAndReturn(error: unknown): Error;
 }
 
-export type TErreurStoreBase = TErreurStore<any> | TVoidErreurStore;
-export type TReadableErreurStoreBase = TReadonlyErreurStore<any>;
-export type TReadableErreurStoreRecord = Record<string, TReadableErreurStoreBase>;
+export type TErreurStoreBase = TErreurStore<unknown> | TVoidErreurStore;
+export type TReadableErreurStoreBase = TReadonlyErreurStore<unknown>;
+export type TReadableErreurStoreRecord = Record<
+  string,
+  TReadableErreurStoreBase
+>;
 
 export function createErreurStore<Data>(): TErreurStore<Data> {
   return createErreurStoreInternal<Data>(undefined);
@@ -32,18 +35,21 @@ export function createVoidErreurStore(): TVoidErreurStore {
   return createErreurStoreInternal<true>(true) as TVoidErreurStore;
 }
 
-function createErreurStoreInternal<Data>(defaultValue: any): TErreurStore<Data> {
+function createErreurStoreInternal<Data>(
+  // deno-lint-ignore no-explicit-any
+  defaultValue: any,
+): TErreurStore<Data> {
   const storage = new WeakMap<Error, Data>();
 
   return {
-    [ERREUR_DATA]: true as any,
+    [ERREUR_DATA]: true as Data,
     set,
     setAndThrow,
     setAndReturn,
     has,
     get,
     asReadonly: {
-      [ERREUR_DATA]: true as any,
+      [ERREUR_DATA]: true as Data,
       has,
       get,
     },
@@ -58,10 +64,10 @@ function createErreurStoreInternal<Data>(defaultValue: any): TErreurStore<Data> 
 
   function set(error: Error, data: Data = defaultValue) {
     if (!(error instanceof Error)) {
-      throw new Error('Error should be an instance of Error');
+      throw new Error("Error should be an instance of Error");
     }
     if (storage.has(error)) {
-      throw new Error('Error already exists in store');
+      throw new Error("Error already exists in store");
     }
     storage.set(error, data);
   }
@@ -79,8 +85,10 @@ function createErreurStoreInternal<Data>(defaultValue: any): TErreurStore<Data> 
   }
 }
 
-export function matchFirstErreur<Stores extends readonly TReadableErreurStoreBase[]>(
-  error: any,
+export function matchFirstErreur<
+  Stores extends readonly TReadableErreurStoreBase[],
+>(
+  error: unknown,
   stores: Stores,
 ): Stores[number][typeof ERREUR_DATA] | undefined {
   if (!(error instanceof Error)) {
@@ -94,11 +102,15 @@ export function matchFirstErreur<Stores extends readonly TReadableErreurStoreBas
   return undefined;
 }
 
+export type TMatchResult<StoresRec extends TReadableErreurStoreRecord> = {
+  [K in keyof StoresRec]: StoresRec[K][typeof ERREUR_DATA] | undefined;
+};
+
 export function matchErreurs<StoresRec extends TReadableErreurStoreRecord>(
   error: Error,
   stores: StoresRec,
 ): { [K in keyof StoresRec]: StoresRec[K][typeof ERREUR_DATA] | undefined } {
-  const result: any = {};
+  const result: TMatchResult<StoresRec> = {} as TMatchResult<StoresRec>;
   if (!(error instanceof Error)) {
     for (const key in stores) {
       result[key] = undefined;
@@ -115,33 +127,36 @@ export function toError(value: unknown): Error {
   if (value instanceof Error) {
     return value;
   }
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     return new Error(value);
   }
   if (value === null) {
-    return new Error('ErrorFromNull');
+    return new Error("ErrorFromNull");
   }
   if (value === undefined) {
-    return new Error('ErrorFromUndefined');
+    return new Error("ErrorFromUndefined");
   }
-  if (typeof value === 'object' && value !== null) {
+  if (typeof value === "object" && value !== null) {
     // object
     const message = `ErrorFromObject: ${objectToMessage(value)}`;
-    const cause = 'cause' in value && value.cause instanceof Error ? value.cause : undefined;
+    const cause = "cause" in value && value.cause instanceof Error
+      ? value.cause
+      : undefined;
     return new Error(message, { cause });
   }
-  const typeCapitalized = (typeof value).charAt(0).toUpperCase() + (typeof value).slice(1);
+  const typeCapitalized = (typeof value).charAt(0).toUpperCase() +
+    (typeof value).slice(1);
   const message = `ErrorFrom${typeCapitalized}: ${String(value)}`;
   return new Error(message);
 }
 
 function objectToMessage(obj: object): string {
-  if ('message' in obj && typeof obj.message === 'string') {
+  if ("message" in obj && typeof obj.message === "string") {
     return obj.message;
   }
   try {
     return JSON.stringify(obj);
-  } catch (error) {
+  } catch (_error) {
     return `[object]`;
   }
 }
