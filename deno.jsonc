@@ -7,6 +7,7 @@
   },
   "tasks": {
     "test:watch": "deno test --watch",
-    "bump": "deno run -A jsr:@mys/bump@1"
+    "bump": "deno run -A jsr:@mys/bump@1",
+    "update": "deno run --allow-read=. --allow-write=. --allow-net https://deno.land/x/udd@0.8.2/main.ts *.ts deno.jsonc"
   }
 }
