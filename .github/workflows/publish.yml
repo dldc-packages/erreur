@@ -12,18 +12,14 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.33.4
-      - uses: actions/setup-node@v4
+      - uses: voidzero-dev/setup-vp@v1.21.2
         with:
           node-version-file: .node-version
-          cache: pnpm
+          cache: true
           registry-url: https://registry.npmjs.org
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm check
-      - run: pnpm test
-      - run: pnpm pack
+      - run: vp check
+      - run: vp test run
+      - run: vp pack
       - name: Publish to npm
         run: pnpm publish --no-git-checks
         env:
