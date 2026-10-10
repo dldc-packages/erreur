@@ -29,17 +29,31 @@
     "check": "vp check",
     "lint": "vp lint",
     "format": "vp fmt",
-    "pack": "vp pack"
+    "pack": "vp pack",
+    "release:check": "vp check && vp test run && vp pack",
+    "release": "bumpp --execute \"npm run release:check\""
   },
   "devDependencies": {
     "@arethetypeswrong/core": "^0.18.5",
     "@types/node": "^24.0.0",
     "@vitest/coverage-v8": "^5.0.3",
+    "bumpp": "^12.3.0",
     "typescript": "^6.0.3",
     "vite-plus": "^1.1.0"
   },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.11.2",
+      "onFail": "warn"
+    },
+    "runtime": {
+      "name": "node",
+      "version": "26.11.1",
+      "onFail": "warn"
+    }
+  },
   "engines": {
     "node": "^22.18.0 || ^24.11.0 || >=26.0.0"
-  },
-  "packageManager": "pnpm@10.33.4"
+  }
 }
