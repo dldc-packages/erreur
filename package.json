@@ -3,6 +3,10 @@
   "version": "7.1.1",
   "description": "Type safe errors metadata",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dldc-packages/erreur.git"
+  },
   "files": [
     "dist"
   ],
