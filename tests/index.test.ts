@@ -1,12 +1,12 @@
-import { expect } from "$std/expect/mod.ts";
+import { expect, test } from "vite-plus/test";
 import {
   createErreurStore,
   createVoidErreurStore,
   matchErreurs,
   matchFirstErreur,
-} from "../mod.ts";
+} from "@dldc/erreur";
 
-Deno.test("Gist", () => {
+test("Gist", () => {
   const store1 = createErreurStore<number>();
   const store2 = createErreurStore<string>();
   const store3 = createVoidErreurStore();
@@ -21,7 +21,7 @@ Deno.test("Gist", () => {
   expect(matched).toEqual({ store1: 1, store2: undefined, store3: undefined });
 });
 
-Deno.test("basic matchErreur", () => {
+test("basic matchErreur", () => {
   const store1 = createErreurStore<number>();
   const store2 = createErreurStore<string>();
   const store3 = createVoidErreurStore();

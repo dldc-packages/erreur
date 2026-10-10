@@ -2,23 +2,29 @@ name: Publish
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - "v*"
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write # The OIDC ID token is used for authentication with JSR.
     steps:
       - uses: actions/checkout@v4
-      - uses: denoland/setup-deno@v1
+      - uses: pnpm/action-setup@v4
         with:
-          deno-version: v1.x # Run with latest stable Deno.
-
-      - run: deno fmt --check
-      - run: deno lint
-      - run: deno test
-
-      - run: npx jsr publish
+          version: 10.33.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm test
+      - run: pnpm pack
+      - name: Publish to npm
+        run: pnpm publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

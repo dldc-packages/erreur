@@ -1,9 +1,9 @@
-import { expect } from "$std/expect/expect.ts";
-import { createErreurStore } from "../mod.ts";
+import { expect, test } from "vite-plus/test";
+import { createErreurStore } from "@dldc/erreur";
 
 const store = createErreurStore<number>();
 
-Deno.test("should set the error and throw it", () => {
+test("should set the error and throw it", () => {
   let err: Error;
   expect(() => {
     try {

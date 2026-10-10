@@ -1,0 +1,41 @@
+{
+  "name": "@dldc/erreur",
+  "version": "7.1.1",
+  "description": "Type safe errors metadata",
+  "license": "MIT",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/mod.d.mts",
+      "default": "./dist/mod.mjs"
+    }
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "scripts": {
+    "test": "vp test run",
+    "test:run": "vp test run",
+    "test:watch": "vp test",
+    "test:coverage": "vp test run --coverage",
+    "check": "vp check",
+    "lint": "vp lint",
+    "format": "vp fmt",
+    "pack": "vp pack"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/core": "^0.18.5",
+    "@types/node": "^24.0.0",
+    "@vitest/coverage-v8": "^5.0.3",
+    "typescript": "^6.0.3",
+    "vite-plus": "^1.1.0"
+  },
+  "engines": {
+    "node": "^22.18.0 || ^24.11.0 || >=26.0.0"
+  },
+  "packageManager": "pnpm@10.33.4"
+}

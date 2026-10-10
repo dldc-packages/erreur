@@ -70,10 +70,7 @@ export interface TVoidErreurStore extends TReadonlyErreurStore<true> {
 
 export type TErreurStoreBase = TErreurStore<unknown> | TVoidErreurStore;
 export type TReadableErreurStoreBase = TReadonlyErreurStore<unknown>;
-export type TReadableErreurStoreRecord = Record<
-  string,
-  TReadableErreurStoreBase
->;
+export type TReadableErreurStoreRecord = Record<string, TReadableErreurStoreBase>;
 
 /**
  * Create a new ErreurStore, this function expects a generic type to be passed, this type will be the type of the data associated with the error
@@ -147,9 +144,7 @@ function createErreurStoreInternal<Data>(
  * @param stores
  * @returns
  */
-export function matchFirstErreur<
-  Stores extends readonly TReadableErreurStoreBase[],
->(
+export function matchFirstErreur<Stores extends readonly TReadableErreurStoreBase[]>(
   error: unknown,
   stores: Stores,
 ): Stores[number][typeof ERREUR_DATA] | undefined {
@@ -212,13 +207,10 @@ export function toError(value: unknown): Error {
   if (typeof value === "object" && value !== null) {
     // object
     const message = `ErrorFromObject: ${objectToMessage(value)}`;
-    const cause = "cause" in value && value.cause instanceof Error
-      ? value.cause
-      : undefined;
+    const cause = "cause" in value && value.cause instanceof Error ? value.cause : undefined;
     return new Error(message, { cause });
   }
-  const typeCapitalized = (typeof value).charAt(0).toUpperCase() +
-    (typeof value).slice(1);
+  const typeCapitalized = (typeof value).charAt(0).toUpperCase() + (typeof value).slice(1);
   const message = `ErrorFrom${typeCapitalized}: ${String(value)}`;
   return new Error(message);
 }
